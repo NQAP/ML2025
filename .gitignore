@@ -1,2 +1,16 @@
-
+*.zip
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.xdv
+*.txt
 *.csv
+__pycache__
+b10201054
+L*
+Trees*
+linux_golden
+windows_golden

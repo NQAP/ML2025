@@ -1,0 +1,270 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{interval}
+\usepackage{amssymb}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{ML Written Homework 1}
+\author{Student ID: b10201054}
+
+\begin{document}
+\maketitle
+
+\section{Linear Algebra Recap}
+
+\begin{enumerate}
+    \item [(a)] 
+        (i) $\Rightarrow$ (ii) \textbf{A} is positive semi-definite implies \textbf{A} is symmetric. Since \textbf{A} is symmetric, \textbf{A} is diagonalizable.
+        Suppose $\lambda_{1}, \lambda_{2}, ..., \lambda_{n}$ are the eigenvalues of \textbf{A}, there are eigenvectors $v_{1}, v_{2}, ..., v_{n}$ such that $\textbf{A}v_{k} = \lambda_{k}v_{k}$.
+
+        By the definition of positive semi-definite, we have
+        \[
+            \left\langle \textbf{A}v_{k}, v_{k}\right\rangle = \left\langle \lambda_{k}v_{k}, v_{k} \right\rangle = \lambda_{k}\left\lVert v_k \right\rVert^2  \geq 0
+        \]
+        Hence, all eigenvalues $\lambda_{k} \geq 0$.
+
+        (ii) $\Rightarrow$ (iii) \textbf{A} is symmetric and all of eigenvalues $\lambda_{k}$ are non negative. Since \textbf{A} is symmetric, \textbf{A} is diagonalizable.
+        That is, there are $P, D$ such that $\textbf{A} = P^{T}DP$, where D = $diag(\lambda_{1}, \lambda_{2}, ..., \lambda_{n})$.
+
+        Since $\lambda_{k} \geq 0$, we can find $e_{k} = \sqrt{\lambda_{k}}$ and $E = diag(e_{1}, e_{2}, ..., e_{n})$ so that $D = E^2$.
+        Now we have
+        \[
+            \mathbf{A} = P^{T}DP = P^{T}EEP = (P^{T}E)(EP) = (EP)^{T}(EP)
+        \]
+        Hence, $\mathbf{A} = \mathbf{B}^{T}\mathbf{B}$ where $\mathbf{B} = EP$
+
+        (iii) $\Rightarrow$ (i) $\mathbf{A} = \mathbf{B}^{T}\mathbf{B}$, then we have
+        \[
+            u^{T}\mathbf{A}u = u^{T}\mathbf{B}^{T} \mathbf{B}u = (\mathbf{B}u)^{T}(\mathbf{B}u) = \left\lVert \mathbf{B}u \right\rVert ^2 \geq 0
+        \]
+        for all $u \in V$. Hence, \textbf{A} is positive semi-definite. 
+    \item[(b)]
+        Note that $\left\langle \mathbf{A}^{T}\mathbf{A} x, x \right\rangle = \left\langle \mathbf{A}x, \mathbf{A}x\right\rangle = \left\lVert \mathbf{A}x \right\rVert^2 \geq 0$ for all $x\in V$.
+        By (a), $\mathbf{A}^{T}\mathbf{A}$ is positive semi-definite. Hence the eigenvalues of $\mathbf{A}^{T}\mathbf{A}$ are nonnegative.
+    \item[(c)]
+        For $x\in Null(\mathbf{A})$, we have $\mathbf{A}^{T}\mathbf{A}x = 0$, so that $x\in Null(\mathbf{A}^{T}\mathbf{A})$.
+        
+        For $x\in Null(\mathbf{A}^{T}\mathbf{A})$, 
+        \[
+            \left\langle \mathbf{A}^{T}\mathbf{A}x, x \right\rangle =  \left\langle \mathbf{A}x, \mathbf{A}x\right\rangle =\left\lVert \mathbf{A}x \right\rVert^{2} = 0
+        \]
+        which implies $\mathbf{A}x = 0$. Hence $x\in Null(\mathbf{A})$.
+        By the above, we can find that $Null(\mathbf{A}) = Null(\mathbf{A}^{T}\mathbf{A})$.
+    \item[(d)]
+        $\left\langle \mathbf{A}v_{i}, \mathbf{A}v_{j} \right\rangle = \left\langle \mathbf{A}^{T}\mathbf{A} v_{i}, v_{j} \right\rangle = \left\langle \lambda_{i}v_{i}, v_{j} \right\rangle = 0$ for any $i \neq j$. Hence $\{\mathbf{A}v_{1}, ..., \mathbf{A}v_{r}\}$ is an orthogonal set.
+    \item[(e)]
+        Suppose $V$ is a $n \times n$ matrix whose $i$-th column is $v_{i}$, then $V$ is an orthogonal matrix where $\mathbf{A}^{T}\mathbf{A} = VDV^{T}$. Let $U$ be a $m \times m$ matrix with its $i$-th column $u_{i}$, where $u_{i} = \frac{\mathbf{A}v_{i}}{\sigma_{i}}$, and $\Sigma$ be a $m \times n$ matrix with its diagonal entries $\sigma_{i}$.
+
+        Then we have the relation:
+        \[
+            U\Sigma = \mathbf{A}V \Rightarrow \mathbf{A} = U\Sigma V^{T}
+        \]
+        By (d), $\{\mathbf{A}v_{1}, ..., \mathbf{A}v_{r}\}$ is an orthogonal set, we have $\{\mathbf{u}_{1}, ..., \mathbf{u}_{r}\}$ is also an orthogonal set.
+        Hence $U$ is also an orthogonal matrix.
+\end{enumerate}
+
+\section{Definition of Derivative as Linear Operator}    
+Assume $f(n), g(n), h(n)$ are all positive function.
+\begin{enumerate}
+    \item[(a)]
+        $f(n)\in O(g(n))$ and $g(n)\in O(h(n))$ gives us $f(n)\leq c_{1}g(n), g(n) \leq c_{2}h(n)$. Hence we have
+        \[
+            f(n) \leq c_{1}g(n) \leq c_{1}c_{2}h(n) \leq ch(n)
+        \]
+        This gives us $f(n)\in O(h(n))$
+    \item[(b)]
+        $f(n)\in O(g(n))$ means $f(n)\leq c_{1}g(n)$. Since $f(n), g(n)$ are positive, we have $c_{1}$ also be positive. Hence we have
+        \[
+            g(n) \geq \frac{1}{c_{1}} f(n)
+        \]
+        This gives us $g(n)\in \Omega (f(n))$
+    \item[(c)]
+        $f(n)\in \omega(g(n))$ means for all constants $c>0$, there exists an $n_0$ such that $f(n)>cg(n)$ when $n\geq n_0$.
+        
+        Then we have for all constants $c>0$, there exists an $n_0$ such that $g(n)<\frac{1}{c}f(n)$ when $n\geq n_0$. This gives us $g(n)\in o(f(n))$.
+    
+\end{enumerate}
+
+\section{Matrix Calculus}    
+
+\begin{enumerate}
+    \item[(a)] 
+        Here we use limit supremum to prove. 
+        \[
+            \limsup_{n\to\infty} \frac{2^{2n}}{2^{2n+1024}}=\limsup_{n\to\infty} \frac{1}{2^{1024}} = \frac{1}{2^{1024}} < \infty
+        \]
+        Hence $2^{2n}\in O(2^{2n+1024})$
+    \item[(b)]
+        Note that $\log_{1024}n^{2} = 2 \log_{1024} n = 2\frac{\log n}{\log 1024}, \log_{2}n^{1024} = 1024 \log_{2} n = 1024 \frac{\log n}{\log 2}$
+        Then we have
+        \[
+            \limsup_{n\to\infty} \frac{\log_{1024}n^{2}}{\log_{2}n^{1024}} = \limsup_{n\to\infty} \frac{\frac{2\log n}{\log 1024}}{\frac{1024\log n}{\log 2}} = \limsup_{n\to\infty} \frac{2 \log 2}{1024 \log 1024} = \frac{1}{5120} \neq 0
+        \]
+        Hence $\log_{1024} n^{2} \notin o(\log_{2} n^{1024})$
+    \item[(c)]
+        From the Stirling's approximation, we have $n!\sim \sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}$ when $n$ is large enough.
+        Then we get 
+        \[
+            \log(n!) \sim \log\left(\sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}\right) = n(\log n - \log e) + 0.5(\log {n} + \log 2\pi)
+        \]
+        \[
+            \frac{\log(n!)}{n\log n} = 1 - \frac{\log e}{\log n} + \frac{1}{2n} + \frac{\log 2\pi}{2n\log n}
+        \]
+        Hence, we have $\lim_{n\to\infty} \frac{\log(n!)}{n\log n} = 1$.
+        By the result of 1.(c), we have $$\log(n!) \in \Theta(n\log n)$$
+    \item[(d)]
+        $x^{2.5} = \left\lfloor x^{2.5}\right\rfloor + \left\{ x^{2.5}\right\} $, where $\left\{ x^{2.5}\right\} $ is the fraction part of $x^{2.5}$.
+        Then we have
+        \[
+            \lim_{x\to\infty} \frac{\left\lfloor x^{2.5}\right\rfloor}{x^{2.5}} = \lim_{x\to\infty} \frac{x^{2.5} - \left\{ x^{2.5}\right\}}{x^{2.5}} = 1
+        \]
+        By the result of 1.(c), we have $\left\lfloor x^{2.5}\right\rfloor \in \Theta(x^{2.5})\Rightarrow \left\lfloor x^{2.5}\right\rfloor \in \Omega(x^{2.5})$
+    \item[(e)]
+        $\left\lceil \frac{x}{2}\right\rceil = \frac{x}{2} + 1 - \left\{ \frac{x}{2}\right\}$, where $\left\{ \frac{x}{2}\right\} $ is the fraction part of $\frac{x}{2}$.
+        \[
+            \frac{x\left\lceil \frac{x}{2}\right\rceil}{x^2} = \frac{x(\frac{x}{2} + 1 - \left\{ \frac{x}{2}\right\})}{x^2} = \frac{1}{2} + \frac{1}{x} - \frac{\left\{ \frac{x}{2}\right\}}{x}
+        \]
+        Then we have
+        \[
+            x\left\lceil \frac{x}{2}\right\rceil = 2x^2 + \left(1-\left\{\frac{x}{2}\right\} \right)x
+        \]
+        When $x>1$, we know that $x < x^2$, hence the $\left(1-\left\{\frac{x}{2}\right\} \right)x$ part has the upperbound $x^2$.
+        So that we finally get the result
+        \[
+            x\left\lceil \frac{x}{2}\right\rceil \leq 3x^2 
+        \]
+        for $x>1$.
+        This gives us $x\left\lceil \frac{x}{2}\right\rceil \in O(x^2)$
+\end{enumerate}
+
+\section{Closed-Form Linear Regression Solution}
+
+\[
+    f_{10}(n) \succ f_{9}(n) \succ f_{4}(n) \succ f_{12}(n) \succ f_{2}(n) \succ f_{3}(n)    
+\]
+\[
+    f_{3}(n) \sim f_{13}(n) \succ f_{1}(n) \succ f_{5}(n) \succ f_{11}(n) \succ f_{7}(n) \succ f_{6}(n)
+\]
+\\
+$f_{10} \succ f_{9}$:
+\[
+    \lim_{n\to\infty} \frac{\log\log n}{10^{10^10}} = \infty
+\]
+\\
+$f_{9} \succ f_{4}$:
+\[
+    \lim_{n\to\infty} \frac{\sqrt{\log n}}{\log\log n} = \lim_{n\to\infty} \frac{\frac{1}{2x\sqrt{\log x}}}{\frac{1}{x\log x}} = \lim_{n\to\infty} \frac{\sqrt{\log x}}{2} = \infty
+\]
+\\
+$f_{4} \succ f_{12}$:
+\[
+    \lim_{n\to\infty} \frac{(\log n)^{1.5}}{\sqrt{\log n}} = \lim_{n\to\infty} \log n = \infty
+\]
+\\
+$f_{12} \succ f_{2}$:
+\[
+    10^{\log n^2} = (e^{\log10})^{2\log n} = (e^{\log n})^{2\log 10}= n^{2\log 10}
+\]
+\[
+    \lim_{n\to\infty} \frac{n^{2\log 10}}{(\log n)^{1.5}} = \lim_{n\to\infty} \frac{(2\log 10) n^{(2\log 10) - 1}}{\frac{1.5(\log n)^{0.5}}{n}} = \lim_{n\to\infty} \frac{(2\log 10) n^{2\log 10}}{1.5(\log n)^{0.5}} = \infty
+\]
+\\
+$f_{2} \succ f_{3}$:
+\[
+    \lim_{n\to\infty} \frac{n^6}{n^{2\log 10}} = \infty \text{ since } 6 > 2\log 10
+\]
+\\
+$f_{3} \sim f_{13}$:
+\[
+    \sum_{k = 1}^{n} k^5 = \frac{1}{12} n^2 (n + 1)^2 (2n^2 + 2n - 1) = \frac{1}{6} n^6 + \frac{1}{2} n^5 + \frac{5}{12} n^4 - \frac{1}{12} n^2
+\]
+\[
+    \lim_{n\to\infty} \frac{\sum_{k = 1}^{n} k^5}{n^6} = \frac{1}{6}
+\]
+\\
+$f_{13} \succ f_{8}$:
+Suppose d is a constant, we have
+\[
+    d \log n < (\log \log n) (\log n) \Rightarrow n^{d} < n^{\log\log n}
+\]
+\[
+    \lim_{n\to\infty} \frac{n^{\log\log n}}{\sum_{k = 1}^{n} k^5} = \lim_{n\to\infty} \frac{n^{\log\log n}}{\frac{1}{6} n^5 + \frac{1}{2} n^4 + \frac{5}{12} n^3 - \frac{1}{12} n} = \infty
+\]
+\\
+$f_{8} \succ f_{1}$:
+\[
+    (\log \log n) (\log n) < \log n \log n < n < n \log \frac{3}{2} \Rightarrow n^{\log\log n} < (\frac{3}{2})^n
+\]
+\[
+    \lim_{n\to\infty} \frac{n(\frac{3}{2})^n}{n^{\log\log n}} = \infty
+\]
+\\
+$f_{1} \succ f_{5}$:
+\[
+    \lim_{n\to\infty} \frac{3^n}{n(\frac{3}{2})^n} = \lim_{n\to\infty} \frac{2^n}{n} = \infty
+\]
+\\
+$f_{5} \succ f_{11}$
+\[
+    \lim_{n\to\infty} \frac{n!}{3^n} = \lim_{n\to\infty} \frac{\sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}}{3^n} = \lim_{n\to\infty}  \sqrt{2\pi n}\left(\frac{n}{3e}\right)^{n} = \infty
+\]
+\\
+$f_{11} \succ f_{7}$
+\[
+    \lim_{n\to\infty} \frac{n^n}{n!} = \lim_{n\to\infty} \frac{n^n}{\sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}} = \lim_{n\to\infty} \frac{e^{n}}{\sqrt{2\pi n}} = \infty
+\]
+\\
+$f_{7} \succ f_{6}$
+\[
+    6^{n} \log 6 > n \log n \Rightarrow 6^{6^n} > n^{n} 
+\]
+
+\section{Noise and Regularization}
+
+\begin{enumerate}
+    \item[(a)] 
+        Suppose $c_1, c_2$ are two constants such that $f(n)\leq c_1h(n), g(n)\leq c_2h(n)$, then we have
+        \[
+            f(n) + g(n) \leq (c_1 + c_2)h(n) = ch(n)
+        \]
+        Hence, $f(n) + g(n) \in O(h(n))$
+    \item[(b)]
+        Since $f, g$ are positive, we have $\left\lvert f(n) - g(n) \right\rvert \leq \max(f(n), g(n))$. Then either $\left\lvert f(n) - g(n) \right\rvert \in O(f(n))$ or $\left\lvert f(n) - g(n) \right\rvert \in O(g(n))$ would be satisfied.
+        This results that $\left\lvert f(n) - g(n) \right\rvert \in O(h(n))$ because $f(n), g(n) \in O(h(n))$
+    \item[(c)]
+        Since $f, g$ are positive, suppose $c_1$ is a constant that $f(n)\leq c_1g(n)$. Square both sides of the inequation, we have $(f(n))^2 \leq (c_1)^2(g(n))^2$.
+        Hence, $(f(n))^2 \in O((g(n))^2)$
+    \item[(d)]
+        Counterexample: $f(n) = n, g(n) = \frac{n}{2}$, then we have $2^{f(n)} = 2^{n}, 2^{g(n)} = (\sqrt{2})^{n}$.
+        \[
+            \lim_{n\to\infty} \frac{2^{n}}{(\sqrt{2})^n} = \lim_{n\to\infty} (\sqrt{2})^n = \infty
+        \]
+        Hence, $2^{f(n)} \notin O(2^{g(n)})$
+    \item[(e)] 
+        Counterexample: Suppose $f(n) = \log n, g(n) = n, h(n) = n^{2}$, we have $f(g(n)) = \log n, f(h(n)) = 2\log n$. Then $f(g(n)) \notin o(f(h(n)))$. 
+\end{enumerate}
+
+\section*{Problem 6}
+
+\begin{enumerate}
+    \item[(a)]
+        The loop from line 4 to line 7 runs $n$ times, and for each loop, the line 6 runs $k$ times. 
+        Hence the time complexity is 
+        \[
+            \sum_{k=1}^{n} k\Theta(1) = \Theta(n^2)
+        \]
+    \item[(b)] 
+        The loop from line 4 to line 7 runs $n$ times, and for each loop, the line 6 runs $k$ times.
+        When the line 6 runs the first time of the loop, the time complexity is $\Theta(\min(x, k)) = \Theta(1)$.
+        After the first time of the loop, the time complexity is $\Theta(\min(x, k)) = \Theta(k)$
+        Sum up the complexity and we have the total time complexity of the $k_{th}$ loop be $(k-1)\Theta(k) + \Theta(1) = \Theta(k^2)$.
+        Now compute $n$ times, we get the time complexity
+        \[
+            \sum_{k=1}^{n} \Theta(k^2) = \Theta(k^3)
+        \]
+\end{enumerate}
+
+\end{document}
