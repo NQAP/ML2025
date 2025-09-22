@@ -54,6 +54,16 @@ def valid(x, y):
     # TODO: Try to filter out extreme values.
     #  ex: If PM2.5 > 100, then we don't use the data to train (return False), otherwise return True,
 
+    for i in range(x.shape[0]):
+        IQR = np.percentile(x[i, :], 75) - np.percentile(x[i, :], 25)
+        # print(x[i, :])
+        # print(IQR)
+        for j in range(x.shape[1]):
+            if (x[i, j] > np.percentile(x[i, :], 75) + 10 * IQR):
+                return False
+    
+    if y > 50:
+        return False
 
     return True
 
@@ -63,6 +73,7 @@ def parse2train(data, feats):
 
     x = []
     y = []
+    print (data.shape)
 
     # Use data #0~#7 to predict #8 => Total data length should be decresased by 8.
     total_length = data.shape[1] - 8
@@ -70,17 +81,17 @@ def parse2train(data, feats):
     for i in range(total_length):
         x_tmp = data[feats, i:i+8] # Use data #0~#7 to predict #8, data #1~#8 to predict #9, etc.
         y_tmp = data[-1, i+8] # last column of (i+8)th row: PM2.5
+        # print(x_tmp.shape)
 
-    # Filter out extreme values to train.
-    if valid(x_tmp, y_tmp):
-        x.append(x_tmp.reshape(-1,))
-        y.append(y_tmp)
-
+        # Filter out extreme values to train.
+        if valid(x_tmp, y_tmp):
+            x.append(x_tmp.reshape(-1,))
+            y.append(y_tmp)
     # x.shape: (n, 15, 8)
     # y.shape: (n, 1)
     x = np.array(x)
     y = np.array(y)
-
+    
     return x,y
 
 """#**Gradient descent**
@@ -117,7 +128,7 @@ def minibatch(x, y, config):
     np.random.shuffle(index)
     x = x[index]
     y = y[index]
-
+    
     # Initialization
     batch_size = config.batch_size
     lr = config.lr
@@ -157,6 +168,7 @@ def minibatch(x, y, config):
             # Update weight & bias
             w -= lr * g_t / (np.sqrt(cache_w) + epsilon)
             bias -= lr * g_t_b / (np.sqrt(cache_b) + epsilon)
+            
 
     return w, bias
 
@@ -168,16 +180,16 @@ def minibatch_2(x, y, config):
 
 # TODO: Tune the config to boost your performance.
 train_config = Namespace(
-    batch_size = 3,
+    batch_size = 100,
     lr = 0.1,
-    epoch = 5,
+    epoch = 20,
     decay_rate = 0.9
 )
 
 """# **Training your regression model**"""
 
-train_df = pd.read_csv("/content/train.csv")
-train_df
+train_df = pd.read_csv("./content/train.csv")
+# train_df.info()
 
 # TODO: Normalize each column (except PM2.5) for the report (use z-score normalization)
 def normalize_train_data(df):
@@ -194,6 +206,16 @@ def normalize_train_data(df):
     Hint: Loop through data.columns, skip PM2.5
     """
     # Your implementation here
+    norm_params = {}
+    for column in df.columns:
+        if column == 'PM2.5':
+            continue
+        mean = df[column].mean()
+        std = df[column].std()
+        norm_params[column] = {'mean': mean, 'std': std}
+        df[column] = (df[column] - mean) / std
+
+    return df, norm_params
     pass
 
 # Choose your features to train.
@@ -202,7 +224,7 @@ def normalize_train_data(df):
 # 2. You should select "good" features.
 
 # TODO: Carefully justify which feature should be chosen.
-feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+feats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 14]
 
 # Training data preprocessing
 def train_processing(train_df, norm=False):
@@ -223,11 +245,12 @@ def train_processing(train_df, norm=False):
 
     return train_x, train_y, norm_params
 
-train_x, train_y, norm_params = train_processing(train_df, norm=False)
+train_x, train_y, norm_params = train_processing(train_df, norm=True)
+# print (train_x, train_y)
 
 # Train your regression model
 w, bias = minibatch(train_x, train_y, train_config)
-print(w.shape, bias.shape)
+# print(w, bias)
 
 """# **Testing:**
 
@@ -252,8 +275,8 @@ def normalize_test_data(df, norm_params):
 
     return data_norm
 
-test_df = pd.read_csv('test.csv')
-test_df
+test_df = pd.read_csv('./content/test.csv')
+# test_df.info()
 
 # Testing data preprocessing
 def test_processing(test_df, norm=False, norm_params=norm_params):
@@ -274,7 +297,7 @@ def test_processing(test_df, norm=False, norm_params=norm_params):
 
     return test_x
 
-test_x = test_processing(test_df, norm=False, norm_params=norm_params)
+test_x = test_processing(test_df, norm=True, norm_params=norm_params)
 
 """# **Write result as .csv**
 
