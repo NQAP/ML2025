@@ -4,7 +4,7 @@
 \usepackage{bm}
 \usepackage{interval}
 \usepackage{amssymb}
-\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=1cm,right=3cm,marginparwidth=1.75cm]{geometry}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 
 \title{ML Written Homework 1}
@@ -67,24 +67,41 @@
 \end{enumerate}
 
 \section{Definition of Derivative as Linear Operator}    
-Assume $f(n), g(n), h(n)$ are all positive function.
+
 \begin{enumerate}
     \item[(a)]
-        $f(n)\in O(g(n))$ and $g(n)\in O(h(n))$ gives us $f(n)\leq c_{1}g(n), g(n) \leq c_{2}h(n)$. Hence we have
+        Suppose $\mathbf{x} = (x_{1}, x_{2}, ..., x_{n})^{T}, \mathbf{a} = (a_{1}, a_{2}, ..., a_{n})^{T}$. $\left\lVert \mathbf{x} - \mathbf{a} \right\rVert _{2} = \sqrt{\sum_{i = 1}^{n} (x_{i} - a_{i})^{2}}  $.
         \[
-            f(n) \leq c_{1}g(n) \leq c_{1}c_{2}h(n) \leq ch(n)
+            \frac{\partial \sqrt{\sum_{i = 1}^{n} (x_{i} - a_{i})^{2}}}{\partial x_{k}} = \frac{1}{2}\cdot \frac{2(x_{k} - a_{k})}{\sqrt{\sum_{i = 1}^{n} (x_{i} - a_{i})^{2}}} = \frac{x_{k} - a_{k}}{\left\lVert \mathbf{x} - \mathbf{a} \right\rVert _{2}}
         \]
-        This gives us $f(n)\in O(h(n))$
+        Then we have 
+        \[
+            \frac{\partial \left\lVert \mathbf{x} - \mathbf{a} \right\rVert _{2}}{\partial \mathbf{x}} = (\frac{x_{1} - a_{1}}{\left\lVert \mathbf{x} - \mathbf{a} \right\rVert _{2}}, ..., \frac{x_{n} - a_{n}}{\left\lVert \mathbf{x} - \mathbf{a} \right\rVert _{2}})^{T} = \frac{\mathbf{x} - \mathbf{a}}{\left\lVert \mathbf{x} - \mathbf{a} \right\rVert _{2}}
+        \]
     \item[(b)]
-        $f(n)\in O(g(n))$ means $f(n)\leq c_{1}g(n)$. Since $f(n), g(n)$ are positive, we have $c_{1}$ also be positive. Hence we have
+        Suppose $\mathbf{a} = (a_{1}, ..., a_{m})^{T}, \mathbf{b} = (b_{1}, ..., b_{n})^{T}, \mathbf{X} = (x_{ij})$. 
         \[
-            g(n) \geq \frac{1}{c_{1}} f(n)
+            \mathbf{a}^{T}\mathbf{X}\mathbf{T} = \sum_{j=1}^{n}\sum_{i=1}^{m}a_{i}x_{ij}b_{j}
         \]
-        This gives us $g(n)\in \Omega (f(n))$
+        \[
+            \frac{\partial \mathbf{a}^{T}\mathbf{X}\mathbf{T}}{\partial x_{ij}} = \frac{\sum_{j=1}^{n}\sum_{i=1}^{m}a_{i}x_{ij}b_{j}}{\partial x_{ij}} = a_{i}b_{j}
+        \]
+        Then we have
+        \[
+            \frac{\partial \mathbf{a}^{T}\mathbf{X}\mathbf{T}}{\partial \mathbf{X}} = \mathbf{a}\mathbf{b}^{T}
+        \]
     \item[(c)]
-        $f(n)\in \omega(g(n))$ means for all constants $c>0$, there exists an $n_0$ such that $f(n)>cg(n)$ when $n\geq n_0$.
-        
-        Then we have for all constants $c>0$, there exists an $n_0$ such that $g(n)<\frac{1}{c}f(n)$ when $n\geq n_0$. This gives us $g(n)\in o(f(n))$.
+        Suppose $\mathbf{x} = (x_{1}, ..., x_{n})^{T}, \mathbf{A} = (A_{ij})$.
+        \[
+            \mathbf{x}^{T}\mathbf{A}\mathbf{x} = \sum_{j=1}^{n}\sum_{i=1}^{n}x_{i}A_{ij}x_{j}
+        \] 
+        \[
+            \frac{\partial \mathbf{x}^{T}\mathbf{A}\mathbf{x}}{\partial x_{k}} = \frac{\partial \sum_{j=1}^{n}\sum_{i=1}^{n}x_{i}A_{ij}x_{j}}{\partial x_k} = \sum_{i=1}^{n}x_{i}A_{ik} + \sum_{j=1}^{n}A_{kj}x_{j} = (\mathbf{A}^{T}\mathbf{x})_{k} + (\mathbf{A} \mathbf{x})_{k}
+        \]
+        Hence, we have
+        \[
+            \frac{\partial \mathbf{x}^{T}\mathbf{A}\mathbf{x}}{\partial \mathbf{x}} = (\mathbf{A} + \mathbf{A}^{T}) \mathbf{x}
+        \]
     
 \end{enumerate}
 
@@ -92,179 +109,75 @@ Assume $f(n), g(n), h(n)$ are all positive function.
 
 \begin{enumerate}
     \item[(a)] 
-        Here we use limit supremum to prove. 
+        We have $\det(\mathbf{A}) = \sum_{j=1}^{n}\sum_{i=1}^{n} A_{ij} * C_{ij}$, where $C_{ij} = (-1)^{i+j}M_{ij} = adj(\mathbf{A})_{ji}$.
+        Thus we have
         \[
-            \limsup_{n\to\infty} \frac{2^{2n}}{2^{2n+1024}}=\limsup_{n\to\infty} \frac{1}{2^{1024}} = \frac{1}{2^{1024}} < \infty
+            \frac{\partial \det(\mathbf{A})}{\partial A_{ij}} = C_{ij} = adj(\mathbf{A})_{ji}
         \]
-        Hence $2^{2n}\in O(2^{2n+1024})$
+        Hence, 
+        \[
+            \frac{\partial \det(\mathbf{A})}{\partial \mathbf{A}} = adj(\mathbf{A})^{T} = \det(\mathbf{A})(\mathbf{A}^{-1})^{T}
+        \]
+
     \item[(b)]
-        Note that $\log_{1024}n^{2} = 2 \log_{1024} n = 2\frac{\log n}{\log 1024}, \log_{2}n^{1024} = 1024 \log_{2} n = 1024 \frac{\log n}{\log 2}$
-        Then we have
+        By chain rule:
         \[
-            \limsup_{n\to\infty} \frac{\log_{1024}n^{2}}{\log_{2}n^{1024}} = \limsup_{n\to\infty} \frac{\frac{2\log n}{\log 1024}}{\frac{1024\log n}{\log 2}} = \limsup_{n\to\infty} \frac{2 \log 2}{1024 \log 1024} = \frac{1}{5120} \neq 0
+            \frac{\partial \log(\det(\mathbf{A}))}{\partial \mathbf{A}} = \frac{\partial \log(\det(\mathbf{A}))}{\partial \det(\mathbf{A})} \frac{\partial \det(\mathbf{A})}{\partial \mathbf{A}} = \frac{1}{\det(\mathbf{A})}\det(\mathbf{A})(\mathbf{A}^{-1})^{T} = (\mathbf{A}^{-1})^{T}
         \]
-        Hence $\log_{1024} n^{2} \notin o(\log_{2} n^{1024})$
-    \item[(c)]
-        From the Stirling's approximation, we have $n!\sim \sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}$ when $n$ is large enough.
-        Then we get 
-        \[
-            \log(n!) \sim \log\left(\sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}\right) = n(\log n - \log e) + 0.5(\log {n} + \log 2\pi)
-        \]
-        \[
-            \frac{\log(n!)}{n\log n} = 1 - \frac{\log e}{\log n} + \frac{1}{2n} + \frac{\log 2\pi}{2n\log n}
-        \]
-        Hence, we have $\lim_{n\to\infty} \frac{\log(n!)}{n\log n} = 1$.
-        By the result of 1.(c), we have $$\log(n!) \in \Theta(n\log n)$$
-    \item[(d)]
-        $x^{2.5} = \left\lfloor x^{2.5}\right\rfloor + \left\{ x^{2.5}\right\} $, where $\left\{ x^{2.5}\right\} $ is the fraction part of $x^{2.5}$.
-        Then we have
-        \[
-            \lim_{x\to\infty} \frac{\left\lfloor x^{2.5}\right\rfloor}{x^{2.5}} = \lim_{x\to\infty} \frac{x^{2.5} - \left\{ x^{2.5}\right\}}{x^{2.5}} = 1
-        \]
-        By the result of 1.(c), we have $\left\lfloor x^{2.5}\right\rfloor \in \Theta(x^{2.5})\Rightarrow \left\lfloor x^{2.5}\right\rfloor \in \Omega(x^{2.5})$
-    \item[(e)]
-        $\left\lceil \frac{x}{2}\right\rceil = \frac{x}{2} + 1 - \left\{ \frac{x}{2}\right\}$, where $\left\{ \frac{x}{2}\right\} $ is the fraction part of $\frac{x}{2}$.
-        \[
-            \frac{x\left\lceil \frac{x}{2}\right\rceil}{x^2} = \frac{x(\frac{x}{2} + 1 - \left\{ \frac{x}{2}\right\})}{x^2} = \frac{1}{2} + \frac{1}{x} - \frac{\left\{ \frac{x}{2}\right\}}{x}
-        \]
-        Then we have
-        \[
-            x\left\lceil \frac{x}{2}\right\rceil = 2x^2 + \left(1-\left\{\frac{x}{2}\right\} \right)x
-        \]
-        When $x>1$, we know that $x < x^2$, hence the $\left(1-\left\{\frac{x}{2}\right\} \right)x$ part has the upperbound $x^2$.
-        So that we finally get the result
-        \[
-            x\left\lceil \frac{x}{2}\right\rceil \leq 3x^2 
-        \]
-        for $x>1$.
-        This gives us $x\left\lceil \frac{x}{2}\right\rceil \in O(x^2)$
+
 \end{enumerate}
 
 \section{Closed-Form Linear Regression Solution}
 
-\[
-    f_{10}(n) \succ f_{9}(n) \succ f_{4}(n) \succ f_{12}(n) \succ f_{2}(n) \succ f_{3}(n)    
-\]
-\[
-    f_{3}(n) \sim f_{13}(n) \succ f_{1}(n) \succ f_{5}(n) \succ f_{11}(n) \succ f_{7}(n) \succ f_{6}(n)
-\]
-\\
-$f_{10} \succ f_{9}$:
-\[
-    \lim_{n\to\infty} \frac{\log\log n}{10^{10^10}} = \infty
-\]
-\\
-$f_{9} \succ f_{4}$:
-\[
-    \lim_{n\to\infty} \frac{\sqrt{\log n}}{\log\log n} = \lim_{n\to\infty} \frac{\frac{1}{2x\sqrt{\log x}}}{\frac{1}{x\log x}} = \lim_{n\to\infty} \frac{\sqrt{\log x}}{2} = \infty
-\]
-\\
-$f_{4} \succ f_{12}$:
-\[
-    \lim_{n\to\infty} \frac{(\log n)^{1.5}}{\sqrt{\log n}} = \lim_{n\to\infty} \log n = \infty
-\]
-\\
-$f_{12} \succ f_{2}$:
-\[
-    10^{\log n^2} = (e^{\log10})^{2\log n} = (e^{\log n})^{2\log 10}= n^{2\log 10}
-\]
-\[
-    \lim_{n\to\infty} \frac{n^{2\log 10}}{(\log n)^{1.5}} = \lim_{n\to\infty} \frac{(2\log 10) n^{(2\log 10) - 1}}{\frac{1.5(\log n)^{0.5}}{n}} = \lim_{n\to\infty} \frac{(2\log 10) n^{2\log 10}}{1.5(\log n)^{0.5}} = \infty
-\]
-\\
-$f_{2} \succ f_{3}$:
-\[
-    \lim_{n\to\infty} \frac{n^6}{n^{2\log 10}} = \infty \text{ since } 6 > 2\log 10
-\]
-\\
-$f_{3} \sim f_{13}$:
-\[
-    \sum_{k = 1}^{n} k^5 = \frac{1}{12} n^2 (n + 1)^2 (2n^2 + 2n - 1) = \frac{1}{6} n^6 + \frac{1}{2} n^5 + \frac{5}{12} n^4 - \frac{1}{12} n^2
-\]
-\[
-    \lim_{n\to\infty} \frac{\sum_{k = 1}^{n} k^5}{n^6} = \frac{1}{6}
-\]
-\\
-$f_{13} \succ f_{8}$:
-Suppose d is a constant, we have
-\[
-    d \log n < (\log \log n) (\log n) \Rightarrow n^{d} < n^{\log\log n}
-\]
-\[
-    \lim_{n\to\infty} \frac{n^{\log\log n}}{\sum_{k = 1}^{n} k^5} = \lim_{n\to\infty} \frac{n^{\log\log n}}{\frac{1}{6} n^5 + \frac{1}{2} n^4 + \frac{5}{12} n^3 - \frac{1}{12} n} = \infty
-\]
-\\
-$f_{8} \succ f_{1}$:
-\[
-    (\log \log n) (\log n) < \log n \log n < n < n \log \frac{3}{2} \Rightarrow n^{\log\log n} < (\frac{3}{2})^n
-\]
-\[
-    \lim_{n\to\infty} \frac{n(\frac{3}{2})^n}{n^{\log\log n}} = \infty
-\]
-\\
-$f_{1} \succ f_{5}$:
-\[
-    \lim_{n\to\infty} \frac{3^n}{n(\frac{3}{2})^n} = \lim_{n\to\infty} \frac{2^n}{n} = \infty
-\]
-\\
-$f_{5} \succ f_{11}$
-\[
-    \lim_{n\to\infty} \frac{n!}{3^n} = \lim_{n\to\infty} \frac{\sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}}{3^n} = \lim_{n\to\infty}  \sqrt{2\pi n}\left(\frac{n}{3e}\right)^{n} = \infty
-\]
-\\
-$f_{11} \succ f_{7}$
-\[
-    \lim_{n\to\infty} \frac{n^n}{n!} = \lim_{n\to\infty} \frac{n^n}{\sqrt{2\pi n}\left(\frac{n}{e}\right)^{n}} = \lim_{n\to\infty} \frac{e^{n}}{\sqrt{2\pi n}} = \infty
-\]
-\\
-$f_{7} \succ f_{6}$
-\[
-    6^{n} \log 6 > n \log n \Rightarrow 6^{6^n} > n^{n} 
-\]
+\begin{enumerate}
+    \item[(a)] 
+        Suppose $\mathbf{K}=diag(\kappa_{1}, ..., \kappa_{m})$
+        \[
+            \sum_{i}^{m}\kappa_{i}(y_{i} - \mathbf{X}_{i}\mathbf{\theta})^{2} + \lambda \sum_{j}^{m} \omega_{j}^{2} = (y-\mathbf{X}\theta)^{T}\mathbf{K}(y-\mathbf{X}\theta) + \lambda \theta^{T}\theta
+        \]
+        The optimal solution happens when the gradient = 0
+        \[
+            \frac{\partial (\sum_{i}^{m}\kappa_{i}(y_{i} - \mathbf{X}_{i}\mathbf{\theta})^{2} + \lambda \sum_{j}^{m} \omega_{j}^{2})}{\partial \theta} = -2\mathbf{X}^{T}\mathbf{K}(y-\mathbf{X}\theta) + 2\lambda \mathbf{I}\theta = 0
+        \]
+        This gives us 
+        \[
+            \theta^{*} = (\mathbf{X}^{T}\mathbf{K}\mathbf{X} + \lambda \mathbf{I})^{-1}\mathbf{X}^{T}\mathbf{K}y
+        \]
+    \item[(b)]
+\end{enumerate}
 
 \section{Noise and Regularization}
 
 \begin{enumerate}
-    \item[(a)] 
-        Suppose $c_1, c_2$ are two constants such that $f(n)\leq c_1h(n), g(n)\leq c_2h(n)$, then we have
-        \[
-            f(n) + g(n) \leq (c_1 + c_2)h(n) = ch(n)
-        \]
-        Hence, $f(n) + g(n) \in O(h(n))$
-    \item[(b)]
-        Since $f, g$ are positive, we have $\left\lvert f(n) - g(n) \right\rvert \leq \max(f(n), g(n))$. Then either $\left\lvert f(n) - g(n) \right\rvert \in O(f(n))$ or $\left\lvert f(n) - g(n) \right\rvert \in O(g(n))$ would be satisfied.
-        This results that $\left\lvert f(n) - g(n) \right\rvert \in O(h(n))$ because $f(n), g(n) \in O(h(n))$
-    \item[(c)]
-        Since $f, g$ are positive, suppose $c_1$ is a constant that $f(n)\leq c_1g(n)$. Square both sides of the inequation, we have $(f(n))^2 \leq (c_1)^2(g(n))^2$.
-        Hence, $(f(n))^2 \in O((g(n))^2)$
-    \item[(d)]
-        Counterexample: $f(n) = n, g(n) = \frac{n}{2}$, then we have $2^{f(n)} = 2^{n}, 2^{g(n)} = (\sqrt{2})^{n}$.
-        \[
-            \lim_{n\to\infty} \frac{2^{n}}{(\sqrt{2})^n} = \lim_{n\to\infty} (\sqrt{2})^n = \infty
-        \]
-        Hence, $2^{f(n)} \notin O(2^{g(n)})$
-    \item[(e)] 
-        Counterexample: Suppose $f(n) = \log n, g(n) = n, h(n) = n^{2}$, we have $f(g(n)) = \log n, f(h(n)) = 2\log n$. Then $f(g(n)) \notin o(f(h(n)))$. 
-\end{enumerate}
-
-\section*{Problem 6}
-
-\begin{enumerate}
     \item[(a)]
-        The loop from line 4 to line 7 runs $n$ times, and for each loop, the line 6 runs $k$ times. 
-        Hence the time complexity is 
+        \begin{align}
+            \frac{1}{2N}\sum_{i=1}^{N}(f_{\mathbf{w},b}(\mathbf{x}_{i}+\eta_{i})-y_{i})^{2} 
+                &= \frac{1}{2N}\sum_{i=1}^{N}(\mathbf{w}^{T}\mathbf{x}_i + b - y_{i} + \mathbf{w}^{T}\eta_{i})^2 \\
+                &= \frac{1}{2N}\sum_{i=1}^{N}(f_{\mathbf{w}, b}(\mathbf{x}_i) - y_{i} + \mathbf{w}^{T}\eta_{i})^2 \\
+                &= \frac{1}{2N}\sum_{i=1}^{N}(f_{\mathbf{w}, b}(\mathbf{x}_i) - y_{i})^2 + (\mathbf{w}^{T}\eta_{i})^2 + 2(f_{\mathbf{w}, b}(\mathbf{x}_i) - y_{i})(\mathbf{w}^{T}\eta_{i})
+        \end{align}
+        Since expect value $\mathbb{E}$ is linear, we can seperate the formula into three part.
         \[
-            \sum_{k=1}^{n} k\Theta(1) = \Theta(n^2)
+            \mathbb{E}((f_{\mathbf{w},b}(\mathbf{x}_{i})-y_{i})^2) = (f_{\mathbf{w},b}(\mathbf{x}_{i})-y_{i})^2
         \]
-    \item[(b)] 
-        The loop from line 4 to line 7 runs $n$ times, and for each loop, the line 6 runs $k$ times.
-        When the line 6 runs the first time of the loop, the time complexity is $\Theta(\min(x, k)) = \Theta(1)$.
-        After the first time of the loop, the time complexity is $\Theta(\min(x, k)) = \Theta(k)$
-        Sum up the complexity and we have the total time complexity of the $k_{th}$ loop be $(k-1)\Theta(k) + \Theta(1) = \Theta(k^2)$.
-        Now compute $n$ times, we get the time complexity
         \[
-            \sum_{k=1}^{n} \Theta(k^2) = \Theta(k^3)
+            \mathbb{E}((\mathbf{w}^{T}\eta_{i})^2) = \sigma^{2}\left\lVert \mathbf{w}\right\rVert ^{2}
         \]
+        \[
+            2(f_{\mathbf{w}, b}(\mathbf{x}_i) - y_{i})(\mathbf{w}^{T}\eta_{i}) = 2(f_{\mathbf{w}, b}(\mathbf{x}_i) - y_{i}) \sum_{j=1}^{k} w_{j}\eta_{i,j}
+        \]
+        \[
+            \mathbb{E}(2(f_{\mathbf{w}, b}(\mathbf{x}_i) - y_{i}) \sum_{j=1}^{k} w_{j}\eta_{i,j}) = 2(f_{\mathbf{w}, b}(\mathbf{x}_i) - y_{i}) \sum_{j=1}^{k} w_{j}\mathbb{E}(\eta_{i,j})=0
+        \]
+        \[
+            \tilde{L} (\mathbf{w}, b) = \mathbb{E}(\frac{1}{2N}\sum_{i=1}^{N}(f_{\mathbf{w},b}(\mathbf{x}_{i}+\eta_{i})-y_{i})^{2})
+        \]
+        \begin{align}
+            \tilde{L}_{ss} (\mathbf{w}, b) 
+                &= \mathbb{E}(\frac{1}{2N}\sum_{i=1}^{N}(f_{\mathbf{w},b}(\mathbf{x}_{i}+\eta_{i})-y_{i})^{2}) \\
+                &= \frac{1}{2N}\sum_{i=1}^{N}((f_{\mathbf{w},b}(\mathbf{x}_{i})-y_{i})^2 + \sigma^{2}\left\lVert \mathbf{w}\right\rVert ^{2})\\
+                &= \frac{1}{2N}\sum_{i=1}^{N}(f_{\mathbf{w},b}(\mathbf{x}_{i})-y_{i})^2 + \frac{\sigma^{2}}{2}\left\lVert \mathbf{w}\right\rVert ^{2}
+        \end{align}
 \end{enumerate}
 
 \end{document}
