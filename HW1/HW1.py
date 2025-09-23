@@ -31,6 +31,7 @@ import os
 
 from tqdm import tqdm
 from step_selection import stepwise_selection
+from LASSO import lasso_coordinate_descent
 from argparse import Namespace
 
 """# **Fix random seed**
@@ -176,15 +177,69 @@ def minibatch(x, y, config):
 
 # TODO: Implement 2-nd polynomial regression version for the report.
 def minibatch_2(x, y, config):
+    # 打亂資料
+    index = np.arange(x.shape[0])
+    np.random.shuffle(index)
+    x = x[index]
+    y = y[index]
+
+    x_poly = polynomial_features(x, degree=2)
+
+    # Initialization
+    batch_size = config.batch_size
+    lr = config.lr
+    epoch = config.epoch
+    decay_rate = config.decay_rate
+    epsilon = 1e-8
+
+    w = np.full((x_poly.shape[1], 1), 0.1)  # 權重
+    bias = 0.1
+
+    # Optimizer states
+    cache_w = np.zeros_like(w)
+    cache_b = 0.0
+
+    # Training loop
+    for num in range(epoch):
+        for b in range(int(x_poly.shape[0] / batch_size)):
+            x_batch = x_poly[b * batch_size:(b + 1) * batch_size]
+            y_batch = y[b * batch_size:(b + 1) * batch_size].reshape(-1, 1)
+
+            # Prediction
+            pred = np.dot(x_batch, w) + bias
+
+            # Loss
+            loss = y_batch - pred
+
+            # Gradient
+            g_t = np.dot(x_batch.T, loss) * (-2)
+            g_t_b = loss.sum(axis=0) * (-2)
+
+            # Update cache (RMSProp)
+            cache_w = decay_rate * cache_w + (1 - decay_rate) * g_t**2
+            cache_b = decay_rate * cache_b + (1 - decay_rate) * g_t_b**2
+
+            # Update params
+            w -= lr * g_t / (np.sqrt(cache_w) + epsilon)
+            bias -= lr * g_t_b / (np.sqrt(cache_b) + epsilon)
+
+    return w, bias
     pass
 
+def polynomial_features(X, degree=2):
+
+    n, d = X.shape
+    features = [X]  # 一階
+    for j in range(d):
+        features.append(X[:, j:j+1] ** 2)  # 平方
+    return np.hstack(features)
 
 
 # TODO: Tune the config to boost your performance.
 train_config = Namespace(
     batch_size = 100,
-    lr = 0.1,
-    epoch = 20,
+    lr = 0.0015,
+    epoch = 200,
     decay_rate = 0.9
 )
 
@@ -230,10 +285,16 @@ train_df_X = train_df.drop(train_df.index[-1]).values
 train_df_y = train_df.drop(train_df.index[0])['PM2.5'].values
 
 feats = stepwise_selection(train_df_X, train_df_y)
+
+# def lasso_feature_selection(X, y, lam=0.1):
+#     w, b = lasso_coordinate_descent(X, y, lam=lam)
+#     selected = np.where(np.abs(w) > 1e-6)[0]  # 過濾掉接近 0 的係數
+#     return selected, w, b
+
+# feats, w_lasso, b_lasso = lasso_feature_selection(train_df_X, train_df_y, lam=0.05)
+
 print(type(feats))
 print(feats)
-
-
 
 # Training data preprocessing
 def train_processing(train_df, norm=False):
@@ -254,11 +315,11 @@ def train_processing(train_df, norm=False):
 
     return train_x, train_y, norm_params
 
-train_x, train_y, norm_params = train_processing(train_df, norm=True)
+train_x, train_y, norm_params = train_processing(train_df, norm=False)
 
 # Train your regression model
 w, bias = minibatch(train_x, train_y, train_config)
-print(w.shape, bias)
+print(w, bias)
 
 """# **Testing:**
 
@@ -266,21 +327,12 @@ print(w.shape, bias)
 
 def parse2test(data, feats):
     x = []
-    y = []
     for i in range(90):
         x_tmp = data[feats, 8*i: 8*i+8]
-        
         x.append(x_tmp.reshape(-1,))
-        if i == 89:
-           y_tmp = data[-1, 8*i+8-1]
-        else:
-           y_tmp = data[-1, 8*i+8]
-        y.append(y_tmp)
-
     # x.shape: (n, 15, 8)
     x = np.array(x)
-    y = np.array(y)
-    return x, y
+    return x
 
 def normalize_test_data(df, norm_params):
     data_norm = df.copy()
@@ -309,15 +361,12 @@ def test_processing(test_df, norm=False, norm_params=norm_params):
 
     # Common processing steps
     test_data = np.transpose(np.array(np.float64(data_values)))
-    test_x, test_y = parse2test(test_data, feats)
-    
+    test_x = parse2test(test_data, feats)
 
-    return test_x, test_y
+    return test_x
 
-test_x, test_y = test_processing(test_df, norm=True, norm_params=norm_params)
-
-
-
+test_x = test_processing(test_df, norm=False, norm_params=norm_params)
+print(type(test_x))
 
 """# **Write result as .csv**
 
@@ -326,7 +375,7 @@ test_x, test_y = test_processing(test_df, norm=True, norm_params=norm_params)
 
 """
 
-with open('stepwise_selection_lr2e-2.csv', 'w', newline='') as csvf:
+with open('stepwise_e200_lr15e-4_wonorm.csv', 'w', newline='') as csvf:
     writer = csv.writer(csvf)
     writer.writerow(['Id','Predicted'])
     pred_y = []
