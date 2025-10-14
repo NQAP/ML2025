@@ -31,7 +31,7 @@ import os
 
 from tqdm import tqdm
 from step_selection import stepwise_selection
-from LASSO import lasso_coordinate_descent
+# from LASSO import lasso_coordinate_descent
 from argparse import Namespace
 
 """# **Fix random seed**
@@ -238,8 +238,8 @@ def polynomial_features(X, degree=2):
 # TODO: Tune the config to boost your performance.
 train_config = Namespace(
     batch_size = 100,
-    lr = 0.1,
-    epoch = 10,
+    lr = 0.001,
+    epoch = 200,
     decay_rate = 0.9
 )
 

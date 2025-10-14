@@ -30,6 +30,8 @@ import pandas as pd
 import os
 
 from tqdm import tqdm
+# from step_selection import stepwise_selection
+# from LASSO import lasso_coordinate_descent
 from argparse import Namespace
 
 """# **Fix random seed**
@@ -222,6 +224,7 @@ def minibatch_2(x, y, config):
             bias -= lr * g_t_b / (np.sqrt(cache_b) + epsilon)
 
     return w, bias
+    pass
 
 def polynomial_features(X, degree=2):
 
@@ -281,77 +284,15 @@ def normalize_train_data(df):
 train_df_X = train_df.drop(train_df.index[-1]).values
 train_df_y = train_df.drop(train_df.index[0])['PM2.5'].values
 
-def ols_fit(X, y):
-    X = np.asarray(X, dtype=float)
-    y = np.asarray(y, dtype=float)
-    beta = np.linalg.inv(X.T @ X) @ X.T @ y
-    y_pred = X @ beta
-    residuals = y - y_pred
-    sse = np.sum(residuals**2)
-    return beta, sse
+feats = [11, 14]
+print(train_df.columns[feats])
 
-def aic(sse, n, k):
-    return n * np.log(sse / n) + 2 * k
+# def lasso_feature_selection(X, y, lam=0.1):
+#     w, b = lasso_coordinate_descent(X, y, lam=lam)
+#     selected = np.where(np.abs(w) > 1e-6)[0]  # 過濾掉接近 0 的係數
+#     return selected, w, b
 
-def stepwise_selection(X, y):
-    n, p = X.shape
-    selected = []
-    remaining = list(range(p))
-    current_aic = np.inf
-
-    while True:
-        changed = False
-
-        # ---------- Forward step ----------
-        aic_candidates = []
-        for feature in remaining:
-            features_to_test = selected + [feature]
-            X_test = np.c_[np.ones(n), X[:, features_to_test]]
-            _, sse = ols_fit(X_test, y)
-            k = len(features_to_test) + 1
-            aic_val = aic(sse, n, k)
-            aic_candidates.append((aic_val, feature))
-
-        if aic_candidates:
-            aic_candidates.sort()
-            best_aic, best_feature = aic_candidates[0]
-
-            if best_aic < current_aic:
-                current_aic = best_aic
-                selected.append(best_feature)
-                remaining.remove(best_feature)
-                changed = True
-                print(f"Forward: 加入特徵 {best_feature}, AIC={best_aic:.2f}")
-
-        # ---------- Backward step ----------
-        if len(selected) > 1:
-            aic_candidates = []
-            for feature in selected:
-                features_to_test = [f for f in selected if f != feature]
-                X_test = np.c_[np.ones(n), X[:, features_to_test]]
-                _, sse = ols_fit(X_test, y)
-                k = len(features_to_test) + 1
-                aic_val = aic(sse, n, k)
-                aic_candidates.append((aic_val, feature))
-
-            aic_candidates.sort()
-            best_aic, worst_feature = aic_candidates[0]
-
-            if best_aic < current_aic:
-                current_aic = best_aic
-                selected.remove(worst_feature)
-                remaining.append(worst_feature)
-                changed = True
-                print(f"Backward: 移除特徵 {worst_feature}, AIC={best_aic:.2f}")
-
-        if not changed:
-            break
-
-    return selected
-
-feats = stepwise_selection(train_df_X, train_df_y)
-
-# feats = [i for i in range(15)]
+# feats, w_lasso, b_lasso = lasso_feature_selection(train_df_X, train_df_y, lam=0.05)
 
 # Training data preprocessing
 def train_processing(train_df, norm=False):
@@ -432,7 +373,7 @@ print(type(test_x))
 
 """
 
-with open('stepwise_e200_lr1e-3_wovalid.csv', 'w', newline='') as csvf:
+with open('WDHR_wonorm.csv', 'w', newline='') as csvf:
     writer = csv.writer(csvf)
     writer.writerow(['Id','Predicted'])
     pred_y = []
