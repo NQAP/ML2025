@@ -190,30 +190,6 @@ test_loader = DataLoader(test_dataset, batch_size=config.BATCH, shuffle=False)
 """#### Model"""
 
 # TODO: define your CNN model
-# class FaceExpressionNet(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-
-#         self.conv = nn.Sequential(
-#             nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2, stride=2),
-#             nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2, stride=2)
-#         )
-
-#         self.fc = nn.Sequential(
-#             nn.Linear(32 * 16 * 16, 128),
-#             nn.ReLU(),
-#             nn.Linear(128, 7)
-#         )
-
-#     def forward(self, x):
-#         x = self.conv(x)
-#         x = x.view(-1, 32 * 16 * 16)
-#         x = self.fc(x)
-#         return x
 
 class FaceExpressionNet(nn.Module):
     def __init__(self):

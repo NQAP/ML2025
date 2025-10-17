@@ -48,8 +48,8 @@ Report:
 config = Namespace(
     random_seed = 42,
     BATCH = 128,
-    n_epoch = 30,
-    lr = 1.5e-3,
+    n_epoch = 50,
+    lr = 1e-3,
     weight_decay = 1e-5,
     ckpt_path = 'model.pth',
 )
@@ -163,9 +163,9 @@ train_tfm = T.Compose([
     T.RandomRotation(15),           # 隨機旋轉
     T.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.8, 1.2)), # 仿射變換
     
-    # 2. 轉換與標準化
+    # # 2. 轉換與標準化
     T.ToTensor(),
-    # T.RandomErasing(p=0.25, scale=(0.02, 0.2), ratio=(0.3, 3.3)),
+    T.RandomErasing(p=0.25, scale=(0.02, 0.2), ratio=(0.3, 3.3)),
     
     # 對單通道灰度圖進行標準化 (請使用您資料集實際的 Mean/Std，這裡使用常見值)
     T.Normalize(mean=MEAN, std=STD),
@@ -190,95 +190,51 @@ test_loader = DataLoader(test_dataset, batch_size=config.BATCH, shuffle=False)
 """#### Model"""
 
 # TODO: define your CNN model
-# class FaceExpressionNet(nn.Module):
-#     def __init__(self):
-#         super().__init__()
 
-#         self.conv = nn.Sequential(
-#             nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2, stride=2),
-#             nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2, stride=2)
-#         )
-
-#         self.fc = nn.Sequential(
-#             nn.Linear(32 * 16 * 16, 128),
-#             nn.ReLU(),
-#             nn.Linear(128, 7)
-#         )
-
-#     def forward(self, x):
-#         x = self.conv(x)
-#         x = x.view(-1, 32 * 16 * 16)
-#         x = self.fc(x)
-#         return x
-    
 class FaceExpressionNet(nn.Module):
     def __init__(self):
         super().__init__()
         
-        # LeakyReLU 代替 ReLU，使梯度在負區間不會完全為零
         self.relu = nn.LeakyReLU(0.1)
 
-        # === Conv Block 1: 寬度 1 -> 64 ===
+        # === 卷積區塊 (與您的原始程式碼相同) ===
         self.conv1 = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64), self.relu,
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64), self.relu,
+            nn.Conv2d(1, 64, kernel_size=3, padding=1), nn.BatchNorm2d(64), self.relu,
+            nn.Conv2d(64, 64, kernel_size=3, padding=1), nn.BatchNorm2d(64), self.relu,
             nn.MaxPool2d(kernel_size=2, stride=2) # 尺寸: 64x64 -> 32x32
         )
-        
-        # === Conv Block 2: 寬度 64 -> 128 ===
         self.conv2 = nn.Sequential(
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128), self.relu,
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128), self.relu,
+            nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.BatchNorm2d(128), self.relu,
+            nn.Conv2d(128, 128, kernel_size=3, padding=1), nn.BatchNorm2d(128), self.relu,
             nn.MaxPool2d(kernel_size=2, stride=2) # 尺寸: 32x32 -> 16x16
         )
-        
-        # === Conv Block 3: 寬度 128 -> 256 ===
         self.conv3 = nn.Sequential(
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(256), self.relu,
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(256), self.relu,
+            nn.Conv2d(128, 256, kernel_size=3, padding=1), nn.BatchNorm2d(256), self.relu,
+            nn.Conv2d(256, 256, kernel_size=3, padding=1), nn.BatchNorm2d(256), self.relu,
             nn.MaxPool2d(kernel_size=2, stride=2) # 尺寸: 16x16 -> 8x8
         )
         
-        # 🚀 實作 GAP: Global Average Pooling
-        # 將 256 x 8 x 8 的特徵圖轉換為 256 x 1 x 1
-        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # 傳統全展平: 256 * 8 * 8 = 16384
+        INPUT_SIZE = 256 * 8 * 8  # 16384
         
-        # 展平後尺寸：256 (通道數) * 1 * 1 = 256
         self.fc_layers = nn.Sequential(
-            nn.Dropout(0.3), # 降低 Dropout 抑制，解決 Underfitting
-            nn.Linear(256, 128), 
-            nn.BatchNorm1d(128),
+            nn.Dropout(0.3), 
+            # ⭐ FC 層輸入尺寸設為 16384
+            nn.Linear(INPUT_SIZE, 256), 
+            nn.BatchNorm1d(256),
             self.relu,
             nn.Dropout(0.3),
-            nn.Linear(128, 7)
+            nn.Linear(256, 7)
         )
 
     def forward(self, x):
-        # 1. 執行卷積區塊
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
 
-        # 🚀 修正點 1: 呼叫 GAP 層
-        # 將 x 的尺寸從 (B, 256, 8, 8) 轉換為 (B, 256, 1, 1)
-        x = self.avg_pool(x)
+        # ⭐ 傳統展平操作，保留所有空間資訊
+        x = x.view(x.size(0), -1) # 尺寸: BATCH x 16384
         
-        # 🚀 修正點 2: 展平
-        # 將 x 的尺寸從 (B, 256, 1, 1) 轉換為 (B, 256)
-        # 這裡的 x.view(x.size(0), -1) 才是正確的 GAP 後展平操作
-        x = x.view(x.size(0), -1)
-        
-        # 3. 執行全連接區塊
         x = self.fc_layers(x)
         return x
 
@@ -344,36 +300,17 @@ def train(model, train_loader, valid_loader, config):
 model = FaceExpressionNet()
 train(model, train_loader, valid_loader, config)
 
-# def draw_confusion_matrix(model, valid_loader):
-#     predictions, labels = [], []
-#     model.to(device)
-#     model.eval()
-#     with torch.no_grad():
-#         for img, lab in tqdm(valid_loader):
-#             img = img.to(device)
-#             output = model(img)
-#             predictions += torch.argmax(output, dim=-1).tolist()
-#             labels += lab.tolist()
-#     # TODO draw the confusion matrix
-#     pass
-
-# import numpy as np
-# import matplotlib.pyplot as plt
-# 注意：這裡不再需要 import sklearn.metrics 或 seaborn
-
 def draw_confusion_matrix(model, valid_loader):
     predictions, labels = [], []
     model.to(device)
     model.eval()
-    
-    # 1. 收集所有預測和真實標籤
     with torch.no_grad():
-        for img, lab in tqdm(valid_loader, desc="Collecting predictions"):
+        for img, lab in tqdm(valid_loader):
             img = img.to(device)
             output = model(img)
             predictions += torch.argmax(output, dim=-1).tolist()
             labels += lab.tolist()
-            
+    # TODO draw the confusion matrix
     # 將列表轉換為 NumPy 陣列
     y_true = np.array(labels)
     y_pred = np.array(predictions)
@@ -420,9 +357,7 @@ def draw_confusion_matrix(model, valid_loader):
     plt.show()
 
 # 確保在訓練後呼叫
-# model.load_state_dict(torch.load(config.ckpt_path)) # 確保載入最佳模型
-# draw_confusion_matrix(model, valid_loader)
-
+model.load_state_dict(torch.load(config.ckpt_path)) # 確保載入最佳模型
 draw_confusion_matrix(model, valid_loader)
 
 """### Testing"""
