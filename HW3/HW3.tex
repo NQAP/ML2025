@@ -8,7 +8,7 @@
 \usepackage[letterpaper,top=2cm,bottom=2cm,left=1cm,right=3cm,marginparwidth=1.75cm]{geometry}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 
-\title{ML Written Homework 2}
+\title{ML Written Homework 3}
 \author{Student: R14921A13鄭皓中}
 
 \begin{document}
@@ -18,46 +18,7 @@
 
 \begin{enumerate}
     \item [(a)] 
-        The values we known are $x_{i}, \mu, \sigma^{2}, \hat{x}_{i}, y_i, \frac{\partial \ell}{\partial y_{i}}$.
-        \[
-            \frac{\partial \mu}{\partial x_{i}} = \frac{1}{d}
-        \]
-        \[
-            \frac{\partial \sigma^{2}}{\partial x_{i}} = \frac{1}{d} \sum_{j=1}^{d} 2(x_{j} - \mu)(\frac{\partial x_{j}}{\partial x_{i}} - \frac{\partial \mu}{\partial x_{i}}) = \frac{2}{d} ((x_{i}- \mu) - \sum_{j=1}^{d} (x_j - \mu)) = \frac{2}{d} (x_{i}- \mu)
-        \]
-        \[
-            \frac{\partial \hat{x}_i}{\partial x_{i}} = \frac{1}{\sqrt{\sigma^{2}+\epsilon}}
-        \]
-        Compute $\frac{\partial \ell}{\partial \hat{x}_{i}}, \frac{\partial \ell}{\partial \sigma^{2}}, \frac{\partial \ell}{\partial \mu}$
-        \[
-            \frac{\partial \ell}{\partial \hat{x}_{i}} = \frac{\partial \ell}{\partial y_{i}} \frac{\partial y_{i}}{\partial \hat{x}_{i}} = \gamma \frac{\partial \ell}{\partial y_{i}}
-        \]
-        \[
-            \frac{\partial \hat{x}_{i}}{\partial \sigma^{2}} = \frac{-1}{2} \frac{x_{i} - \mu}{\sqrt{\sigma^{2}+\epsilon}} \frac{1}{\sigma^{2} +\epsilon} = -\frac{1}{2}\hat{x}_{i}\frac{1}{\sigma^{2}+\epsilon}
-        \]
-        \[
-            \frac{\partial \hat{x}_{i}}{\partial \mu} = -\frac{1}{\sqrt{\sigma^{2}+\epsilon}}
-        \]
-        \[
-            \frac{\partial \sigma^{2}}{\partial \mu} = -\frac{2}{d}\sum_{j=1}^{d}(x_{j}-\mu) = 0
-        \]
-        \[
-            \frac{\partial \ell}{\partial \sigma^{2}} = \sum_{i=1}^{d} \frac{\partial \ell}{\partial \hat{x}_{i}} \frac{\partial \hat{x}_{i}}{\partial \sigma^{2}} = \sum_{i=1}^{d} \gamma \frac{\partial \ell}{\partial y_{i}}(-\frac{1}{2}\hat{x}_{i}\frac{1}{\sigma^{2}+\epsilon})
-        \]
-        \[
-            \frac{\partial \ell}{\partial \mu} = \sum_{i=1}^{d} \frac{\partial \ell}{\partial \hat{x}_{i}}\frac{\partial \hat{x}_{i}}{\partial \mu} + \frac{\partial \ell}{\partial \sigma^{2}}\frac{\partial \sigma^{2}}{\partial \mu} = -\sum_{i=1}^{d} \gamma \frac{\partial \ell}{\partial y_{i}}\frac{1}{\sqrt{\sigma^{2}+\epsilon}}
-        \]
-        Hence, we have 
-        \begin{align*}
-            \frac{\partial \ell}{\partial x_{i}}
-                &= \frac{\partial \ell}{\partial \hat{x}_{i}} \frac{\partial \hat{x}_{i}}{\partial x_{i}}+\frac{\partial \ell}{\partial \sigma^{2}} \frac{\partial \sigma^{2}}{\partial x_{i}} + \frac{\partial \ell}{\partial \mu} \frac{\partial \mu}{\partial x_{i}}\\
-                &= \gamma \frac{\partial \ell}{\partial y_{i}}\frac{1}{\sqrt{\sigma^{2}+\epsilon}} + \sum_{j=1}^{d} \gamma \frac{\partial \ell}{\partial y_{j}}(-\frac{1}{2}\hat{x}_{i}\frac{1}{\sigma^{2}+\epsilon}) \frac{2}{d} (x_{i}- \mu) -\sum_{i=1}^{d} \gamma \frac{\partial \ell}{\partial y_{i}}\frac{1}{\sqrt{\sigma^{2}+\epsilon}}\frac{1}{d}\\
-                &= \frac{1}{\sqrt{\sigma^{2}+\epsilon}} (\gamma \frac{\partial \ell}{\partial y_{i}} - \frac{1}{d} \hat{x}_{1} \sum_{j=1}^{d} \gamma \frac{\partial \ell}{\partial y_{j}}\hat{x}_{j} - \frac{1}{d}\sum_{j=1}^{d}\gamma \frac{\partial \ell}{\partial y_{j}})\\
-            \frac{\partial \ell}{\partial \beta} 
-                &= \sum_{i=1}^{d}\frac{\partial \ell}{\partial y_{i}} \frac{\partial y_{i}}{\partial \beta} = \sum_{i=1}^{d}\frac{\partial \ell}{\partial y_{i}}\\
-            \frac{\partial \ell}{\partial \gamma} 
-                &= \sum_{i=1}^{d}\frac{\partial \ell}{\partial y_{i}} \frac{\partial y_{i}}{\partial \gamma} = \sum_{i=1}^{d} \frac{\partial \ell}{\partial y_{i}}\hat{x}_{i}
-        \end{align*}
+        
     \item[(b)]
         After normalization, the distribution of each feature has same mean and std, but if some features need nonzero mean or nonunit std to get the better performance, only normalization is not enough to learn these feature.
         Hence, we need to use parameter $\gamma, \beta$ to make those feature have nonzero mean and nonunit std, after training, if the feature has the best performance with normalization, then it will be $\gamma=1, \beta=0$.
