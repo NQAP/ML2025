@@ -1,0 +1,490 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{interval}
+\usepackage{amssymb}
+% \usepackage{xeCJK}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=1cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{ML Written Homework 2}
+\author{Student: R14921A13鄭皓中}
+
+\begin{document}
+\maketitle
+
+\section{Layer Normalization}
+
+\begin{enumerate}
+    \item [(a)] 
+        The values we known are $x_{i}, \mu, \sigma^{2}, \hat{x}_{i}, y_i, \frac{\partial \ell}{\partial y_{i}}$.
+        \[
+            \frac{\partial \mu}{\partial x_{i}} = \frac{1}{d}
+        \]
+        \[
+            \frac{\partial \sigma^{2}}{\partial x_{i}} = \frac{1}{d} \sum_{j=1}^{d} 2(x_{j} - \mu)(\frac{\partial x_{j}}{\partial x_{i}} - \frac{\partial \mu}{\partial x_{i}}) = \frac{2}{d} ((x_{i}- \mu) - \sum_{j=1}^{d} (x_j - \mu)) = \frac{2}{d} (x_{i}- \mu)
+        \]
+        \[
+            \frac{\partial \hat{x}_i}{\partial x_{i}} = \frac{1}{\sqrt{\sigma^{2}+\epsilon}}
+        \]
+        Compute $\frac{\partial \ell}{\partial \hat{x}_{i}}, \frac{\partial \ell}{\partial \sigma^{2}}, \frac{\partial \ell}{\partial \mu}$
+        \[
+            \frac{\partial \ell}{\partial \hat{x}_{i}} = \frac{\partial \ell}{\partial y_{i}} \frac{\partial y_{i}}{\partial \hat{x}_{i}} = \gamma \frac{\partial \ell}{\partial y_{i}}
+        \]
+        \[
+            \frac{\partial \hat{x}_{i}}{\partial \sigma^{2}} = \frac{-1}{2} \frac{x_{i} - \mu}{\sqrt{\sigma^{2}+\epsilon}} \frac{1}{\sigma^{2} +\epsilon} = -\frac{1}{2}\hat{x}_{i}\frac{1}{\sigma^{2}+\epsilon}
+        \]
+        \[
+            \frac{\partial \hat{x}_{i}}{\partial \mu} = -\frac{1}{\sqrt{\sigma^{2}+\epsilon}}
+        \]
+        \[
+            \frac{\partial \sigma^{2}}{\partial \mu} = -\frac{2}{d}\sum_{j=1}^{d}(x_{j}-\mu) = 0
+        \]
+        \[
+            \frac{\partial \ell}{\partial \sigma^{2}} = \sum_{i=1}^{d} \frac{\partial \ell}{\partial \hat{x}_{i}} \frac{\partial \hat{x}_{i}}{\partial \sigma^{2}} = \sum_{i=1}^{d} \gamma \frac{\partial \ell}{\partial y_{i}}(-\frac{1}{2}\hat{x}_{i}\frac{1}{\sigma^{2}+\epsilon})
+        \]
+        \[
+            \frac{\partial \ell}{\partial \mu} = \sum_{i=1}^{d} \frac{\partial \ell}{\partial \hat{x}_{i}}\frac{\partial \hat{x}_{i}}{\partial \mu} + \frac{\partial \ell}{\partial \sigma^{2}}\frac{\partial \sigma^{2}}{\partial \mu} = -\sum_{i=1}^{d} \gamma \frac{\partial \ell}{\partial y_{i}}\frac{1}{\sqrt{\sigma^{2}+\epsilon}}
+        \]
+        Hence, we have 
+        \begin{align*}
+            \frac{\partial \ell}{\partial x_{i}}
+                &= \frac{\partial \ell}{\partial \hat{x}_{i}} \frac{\partial \hat{x}_{i}}{\partial x_{i}}+\frac{\partial \ell}{\partial \sigma^{2}} \frac{\partial \sigma^{2}}{\partial x_{i}} + \frac{\partial \ell}{\partial \mu} \frac{\partial \mu}{\partial x_{i}}\\
+                &= \gamma \frac{\partial \ell}{\partial y_{i}}\frac{1}{\sqrt{\sigma^{2}+\epsilon}} + \sum_{j=1}^{d} \gamma \frac{\partial \ell}{\partial y_{j}}(-\frac{1}{2}\hat{x}_{i}\frac{1}{\sigma^{2}+\epsilon}) \frac{2}{d} (x_{i}- \mu) -\sum_{i=1}^{d} \gamma \frac{\partial \ell}{\partial y_{i}}\frac{1}{\sqrt{\sigma^{2}+\epsilon}}\frac{1}{d}\\
+                &= \frac{1}{\sqrt{\sigma^{2}+\epsilon}} (\gamma \frac{\partial \ell}{\partial y_{i}} - \frac{1}{d} \hat{x}_{1} \sum_{j=1}^{d} \gamma \frac{\partial \ell}{\partial y_{j}}\hat{x}_{j} - \frac{1}{d}\sum_{j=1}^{d}\gamma \frac{\partial \ell}{\partial y_{j}})\\
+            \frac{\partial \ell}{\partial \beta} 
+                &= \sum_{i=1}^{d}\frac{\partial \ell}{\partial y_{i}} \frac{\partial y_{i}}{\partial \beta} = \sum_{i=1}^{d}\frac{\partial \ell}{\partial y_{i}}\\
+            \frac{\partial \ell}{\partial \gamma} 
+                &= \sum_{i=1}^{d}\frac{\partial \ell}{\partial y_{i}} \frac{\partial y_{i}}{\partial \gamma} = \sum_{i=1}^{d} \frac{\partial \ell}{\partial y_{i}}\hat{x}_{i}
+        \end{align*}
+    \item[(b)]
+        After normalization, the distribution of each feature has same mean and std, but if some features need nonzero mean or nonunit std to get the better performance, only normalization is not enough to learn these feature.
+        Hence, we need to use parameter $\gamma, \beta$ to make those feature have nonzero mean and nonunit std, after training, if the feature has the best performance with normalization, then it will be $\gamma=1, \beta=0$.
+\end{enumerate}
+
+\section{Classification with Gaussian Mixture Model}    
+
+\begin{enumerate}
+    \item[(a)]
+        \begin{enumerate}
+            \item [(i)]
+                \begin{align*}
+                    L(\theta) 
+                        &= P_{\theta}(\{(\mathbf{x}_{i}, y_{i})\}_{i=1}^{N}) = \prod_{i=1}^{N} P_{\theta}(\mathbf{X}=\mathbf{x}_{i}, \mathbf{Y}=y_{i})\\
+                        &= \prod_{i=1}^{N} [\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}(\mathbf{x}_{i})]^{\mathbb{I} (y_{i}=C_{1})} [\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma_{2}}(\mathbf{x}_{i})]^{\mathbb{I} (y_{i}=C_{2})}\\
+                        &= \frac{1}{(2\pi)^{Nd} |\boldsymbol{\Sigma}_{1}|^{\frac{N}{2}} |\boldsymbol{\Sigma}_{2}|^{\frac{N}{2}}}\exp\left(-\frac{1}{2}\sum_{k=1}^{2}\sum_{i=1}^{N}\mathbb{I} (y_{i}=C_{k})\mathbf{S}_{i,k}\right)
+                \end{align*}
+
+                where $\mathbb{I} (y_{i}=C_{k}) = 1$ if $y_{i}=C_{k}$ else 0 and $\mathbf{S}_{i, k} = (\mathbf{x}_{i}-\mu_{k})^T\Sigma_{k}^{-1}(\mathbf{x}_{i}-\mu_{k})$
+            \item [(ii)]
+                Consider $I_{k} = \{i|y_{i}=C_{k}\}$ , $N_{k} = |I_{k}|$ and $\ell(\theta) = \log(L(\theta))$, we have
+                \[
+                    \ell(\theta) = \sum_{k=1}^{2}\sum_{i\in I_{k}}\log(\pi_{k}f_{\mathbf{\mu}_{k}, \Sigma_{k}}(\mathbf{x}_{i})) = \sum_{k=1}^{2}(N_{k}\log \pi_{k} + \sum_{i\in I_{k}}\log f_{\mathbf{\mu}_{k}, \Sigma_{k}}(\mathbf{x}_{i}))
+                \]
+                Maximize $N_{1}\log\pi_{1} + N_{2}\log\pi_{2}$ constraint on $\pi_{1} + \pi_{2} = 1$:\\
+                Use Lagrange multiplier $\lambda$, $J(\pi_{1}, \pi_{2}, \lambda) = N_{1}\log\pi_{1} + N_{2}\log\pi_{2} + \lambda(1-\pi_{1}-\pi_{2})$
+                \[
+                    \frac{\partial J}{\partial \pi_{1}} = \frac{N_{1}}{\pi_{1}} - \lambda = 0 \Rightarrow \pi_{1} = \frac{N_{1}}{\lambda}
+                \]
+                \[
+                    \frac{\partial J}{\partial \pi_{2}} = \frac{N_{2}}{\pi_{2}} - \lambda = 0 \Rightarrow \pi_{2} = \frac{N_{2}}{\lambda}
+                \]
+                Then we have $\lambda = N_{1} + N_{2} = N$, and the maximum happens when $\pi_{k}^{*} = \frac{N_{k}}{N}$.
+
+                If we want to maximize $L_{k}(\mu_{k},\Sigma_{k}) = \sum_{i\in I_{k}}\log f_{\mathbf{\mu}_{k}, \Sigma_{k}}(\mathbf{x}_{i})$, we only need to consider the case $k = 1$ since $k = 2$ has the same situation as $k = 1$.
+                \begin{align*}
+                    \frac{\partial L_{k}}{\partial \mu_{k}} 
+                        &= - \frac{1}{2}\sum_{i\in I_{k}}\frac{\partial }{\partial \mu_{k}}(\mathbf{x}_{i}-\mathbf{\mu}_{k})^{T}\Sigma_{k}^{-1}(\mathbf{x}_{i}-\mathbf{\mu}_{k}) \\
+                        &= - \frac{1}{2} \sum_{i\in I_{k}} [-2\Sigma_{k}^{-1}(\mathbf{x}_{i}-\mu_{k})] = \sum_{i\in I_{k}} \Sigma_{k}^{-1}(\mathbf{x}_{i}-\mu_{k})
+                \end{align*}
+                Compute $\frac{\partial L_{k}}{\partial \mu_{k}}  = 0 $, we get $\mu_{k}^{*} = \frac{1}{N_{k}}\sum_{i=1}^{N}\mathbb{I} (y_{i}=C_{k})\mathbf{x}_i$
+
+                \begin{align*}
+                    \frac{\partial L_{k}}{\partial \Sigma_{k}^{-1}} = \frac{N_{k}}{2}\Sigma_{k} - \frac{1}{2}\sum_{i\in I_{k}}(\mathbf{x_{i}-\mu_{k}^{*}}) (\mathbf{x_{i}-\mu_{k}^{*}})^T
+                \end{align*}
+                Let $\frac{\partial L_{k}}{\partial \Sigma_{k}^{-1}} = 0$ we get 
+                \[
+                    N_{k}\Sigma_{k}^{*} = \sum_{i\in I_{k}}(\mathbf{x_{i}-\mu_{k}^{*}})(\mathbf{x_{i}-\mu_{k}^{*}})^T
+                \]
+                \[
+                    \Sigma_{k}^{*} = \frac{1}{N_{k}}\sum_{i=1}^{N}\mathbb{I} (y_{i}=C_{k})(\mathbf{x_{i}-\mu_{k}^{*}})(\mathbf{x_{i}-\mu_{k}^{*}})^T
+                \]
+            \item [(iii)]
+                \begin{align*}
+                    P(\mathbf{X}=\mathbf{x}|\mathbf{Y}=C_{1}) 
+                        &= \frac{P(\mathbf{X}=\mathbf{x}, \mathbf{Y}=C_{1})}{P(\mathbf{Y}=C_{1})} \\
+                        &= \frac{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}}{\pi_{1}} \\
+                        &= f_{\mathbf{\mu}_{1}, \Sigma_{1}} (\mathbf{x})\\
+                        &= \frac{1}{(2\pi)^{\frac{d}{2}} |\Sigma_{1}|^{\frac{1}{2}} } \exp\left( -\frac{1}{2}(\mathbf{x}-\mu_{1})^T\Sigma_{1}^{-1}(\mathbf{x}-\mu_{1})\right)
+                \end{align*}
+                This is the Gaussian distribution of class $C_{1}$.
+                \begin{align*}
+                    P(\mathbf{Y}=C_{1}|\mathbf{X}=\mathbf{x}) 
+                        &= \frac{P(\mathbf{X}=\mathbf{x}, \mathbf{Y}=C_{1})}{P(\mathbf{X}=\mathbf{x})} \\
+                        &= \frac{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}}{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}+\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma_{2}}}
+                \end{align*}
+                This is the probability of $y=C_{1}$ with given data $\mathbf{x}$.
+            \item [(iv)]
+                \begin{align*}
+                    P(\mathbf{Y}=C_{1}|\mathbf{X}=\mathbf{x}) 
+                        &= \frac{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}}{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}+\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma_{2}}}\\
+                        &= \frac{1}{1+\frac{\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma_{2}}}{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}}}\\
+                        &= \frac{1}{1+\exp(-(-\log\frac{\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma_{2}}}{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}}))}
+                \end{align*}
+                Then we have $P(\mathbf{Y}=C_{1}|\mathbf{X}=\mathbf{x}) = \sigma(z)$ where $z=-\log\frac{\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma_{2}}}{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}}$.
+                Compute $\log f$
+                \[
+                    \log f_{\mathbf{\mu}_{k}, \Sigma_{k}} = -\frac{d}{2}\log(2\pi) -\frac{1}{2}\log |\Sigma_{k}| - \frac{1}{2}\log (\mathbf{x}-\mu_{k})^T\Sigma_{k}^{-1}(\mathbf{x}-\mu_{k})
+                \]
+                Hence, we can compute $z$
+                \[
+                    z = \log(\frac{\pi_{1}}{\pi_{2}}) -\frac{1}{2}(\log|\Sigma_{1}| - \log|\Sigma_{2}|) - \frac{1}{2} (\mathbf{S}_{1} - \mathbf{S}_{2}) 
+                \]
+                where $\mathbf{S}_{k} = (\mathbf{x}-\mu_{k})^T\Sigma_{k}^{-1}(\mathbf{x}-\mu_{k})$
+        \end{enumerate}
+    \item[(b)]
+        \begin{enumerate}
+            \item [(i)]
+                \begin{align*}
+                    L(\theta) 
+                        &= P_{\theta}(\{(\mathbf{x}_{i}, y_{i})\}_{i=1}^{N}) = \prod_{i=1}^{N} P_{\theta}(\mathbf{X}=\mathbf{x}_{i}, \mathbf{Y}=y_{i})\\
+                        &= \prod_{i=1}^{N} [\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma_{1}}(\mathbf{x}_{i})]^{\mathbb{I} (y_{i}=C_{1})} [\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma_{2}}(\mathbf{x}_{i})]^{\mathbb{I} (y_{i}=C_{2})}\\
+                        &= \frac{1}{(2\pi)^{Nd} |\boldsymbol{\Sigma}|^{N}}\exp\left(-\frac{1}{2}\sum_{k=1}^{2}\sum_{i=1}^{N}\mathbb{I} (y_{i}=C_{k})\mathbf{S}_{i,k}\right)
+                \end{align*}
+                where $\mathbb{I} (y_{i}=C_{k}) = 1$ if $y_{i}=C_{k}$ else 0 and $\mathbf{S}_{i, k} = (\mathbf{x}_{i}-\mu_{k})^T\Sigma^{-1}(\mathbf{x}_{i}-\mu_{k})$
+            \item [(ii)]
+                The only change is $\Sigma_{1} = \Sigma_{2} = \Sigma$, so $\mu_{k}^{*}$ and $\pi_{k}^{*}$ keeps same.
+
+                \begin{align*}
+                    \frac{\partial L_{k}}{\partial \Sigma^{-1}} = \frac{N}{2}\Sigma - \frac{1}{2}\sum_{k=1}^{2}\sum_{i=1}^{N}\mathbb{I} (y_{i}=C_{k})(\mathbf{x_{i}-\mu_{k}^{*}}) (\mathbf{x_{i}-\mu_{k}^{*}})^T
+                \end{align*}
+                Let $\frac{\partial L_{k}}{\partial \Sigma^{-1}} = 0$ we get 
+                \[
+                    N\Sigma^{*} = \sum_{k=1}^{2}\sum_{i=1}^{N}\mathbb{I} (y_{i}=C_{k})(\mathbf{x_{i}-\mu_{k}^{*}})(\mathbf{x_{i}-\mu_{k}^{*}})^T
+                \]
+                \[
+                    \Sigma^{*} = \frac{1}{N}\sum_{k=1}^{2}\sum_{i=1}^{N}\mathbb{I} (y_{i}=C_{k})(\mathbf{x_{i}-\mu_{k}^{*}})(\mathbf{x_{i}-\mu_{k}^{*}})^T
+                \]
+            \item [(iii)]
+                \begin{align*}
+                    P(\mathbf{X}=\mathbf{x}|\mathbf{Y}=C_{1}) 
+                        &= \frac{P(\mathbf{X}=\mathbf{x}, \mathbf{Y}=C_{1})}{P(\mathbf{Y}=C_{1})} \\
+                        &= \frac{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma}}{\pi_{1}} \\
+                        &= f_{\mathbf{\mu}_{1}, \Sigma} (\mathbf{x})\\
+                        &= \frac{1}{(2\pi)^{\frac{d}{2}} |\Sigma|^{\frac{1}{2}} } \exp\left( -\frac{1}{2}(\mathbf{x}-\mu_{1})^T\Sigma^{-1}(\mathbf{x}-\mu_{1})\right)
+                \end{align*}
+                This is the Gaussian distribution of class $C_{1}$.
+                \begin{align*}
+                    P(\mathbf{Y}=C_{1}|\mathbf{X}=\mathbf{x}) 
+                        &= \frac{P(\mathbf{X}=\mathbf{x}, \mathbf{Y}=C_{1})}{P(\mathbf{X}=\mathbf{x})} \\
+                        &= \frac{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma}}{\pi_{1}f_{\mathbf{\mu}_{1}, \Sigma}+\pi_{2}f_{\mathbf{\mu}_{2}, \Sigma}}
+                \end{align*}
+                This is the probability of $y=C_{1}$ with given data $\mathbf{x}$.
+            \item [(iv)]
+                From (a) we have $z$
+                \[
+                    z = \log(\frac{\pi_{1}}{\pi_{2}})  - \frac{1}{2} (\mathbf{S}_{1} - \mathbf{S}_{2}) 
+                \]
+                where $\mathbf{S}_{k} = (\mathbf{x}-\mu_{k})^T\Sigma^{-1}(\mathbf{x}-\mu_{k})$.
+                
+                Compute $\mathbf{S}_{1} - \mathbf{S}_{2}$
+                \begin{align*}
+                    (\mathbf{x}-\mu_{k})^T\Sigma^{-1}(\mathbf{x}-\mu_{k})
+                        &= \mathbf{x}^T\Sigma^{-1}\mathbf{x} - 2\mu_{k}^T\Sigma^{-1}\mathbf{x} + \mu_{k}^T\Sigma^{-1}\mu_{k}
+                \end{align*}
+                \begin{align*}
+                    \mathbf{S}_{1} - \mathbf{S}_{2}
+                        &= - 2(\mu_{1}-\mu_{2})^{T}\Sigma^{-1}\mathbf{x} + \mu_{1}^T\Sigma^{-1}\mu_{1} - \mu_{2}^T\Sigma^{-1}\mu_{2}
+                \end{align*}
+                \begin{align*}
+                    z = (\mu_{1}-\mu_{2})^{T}\Sigma^{-1}\mathbf{x} + [\log(\frac{\pi_{1}}{\pi_{2}}) - \frac{1}{2}(\mu_{1}^T\Sigma^{-1}\mu_{1} - \mu_{2}^T\Sigma^{-1}\mu_{2})]
+                \end{align*}
+        \end{enumerate}
+    
+\end{enumerate}
+
+\section{Multiclass AdaBoost}    
+
+Apply gradient boosting we have $\mathbf{g}_{T+1}^{k} = \mathbf{g}_{T}^{k}+\alpha_{t}\mathbf{f}_{t}(x)$ where $\mathbf{f}_{t}(x) = (f_{t}^{k}(x))_{k=1}^{K}$ and $f_{t}^{k}(x) = \mathbb{I} (f_{t}(x) = k)$.
+To minimize loss function $L$, first we compute $r_{i,k} = -\frac{\partial L}{\partial g_{t}^{k}(x_{i})}$, assume $$h_{i,t} = \frac{1}{K-1}\sum_{k\neq \hat{y}_{i}}g_{t}^{k}(x_{i})-g_{t}^{\hat{y}_{i}}(x_{i})$$
+\textbf{Case 1}: $k = \hat{y}_{i}$
+\begin{align*}
+    r_{i,k} 
+        &= -\frac{\partial L}{\partial g_{t}^{\hat{y}_{i}}(x_{i})}\\
+        &= -\exp(h_{i,t}) \frac{\partial h_{i,t}}{\partial g_{t}^{\hat{y}_{i}}(x_{i})}\\
+        &= -\exp(h_{i,t})(-1)\\ 
+        &= \exp(h_{i,t})
+\end{align*}
+\textbf{Case 2}: $k \neq \hat{y}_{i}$
+\begin{align*}
+    r_{i,k} 
+        &= -\frac{\partial L}{\partial g_{t}^{k}(x_{i})}\\
+        &= -\exp(h_{i,t}) \frac{\partial h_{i,t}}{\partial g_{t}^{k}(x_{i})}\\
+        &= -\exp(h_{i,t})(\frac{1}{K-1})\\ 
+        &= -\frac{1}{K-1}\exp(h_{i,t})
+\end{align*}
+Now consider error rate 
+\begin{equation*}
+    \text{err}_{t} = \frac{\sum_{i=1}^{m}w_{i}^{t}\mathbb{I} (f_{t}(x_i)\neq \hat{y}_{i})}{\sum_{i=1}^{m}w_{i}^{t}}
+\end{equation*}
+where $w_{i}^{t}$ is the sample weight, which is given by $r_{i, \hat{y}_{i}}$
+\begin{equation*}
+    w_{i}^{t} = \exp(h_{i,t})
+\end{equation*}
+Observe the following situation
+\begin{equation*}
+    \begin{split}
+        \sum_{i=1}^{m}\sum_{k=1}^{K}r_{i,k}f_{t}^{k}(x_i) 
+            &= \sum_{i=1}^{m} r_{i,f_{t}(x_{i})}\\
+            &= \sum_{i:correct} r_{i,\hat{y}_{i}} + \sum_{i:wrong} r_{i,f_{t}(x_{i})}\\
+            &= (\sum_{i=1}^{m} w_{i}^{t} - \sum_{i:wrong} w_{i}^{t}) - \frac{1}{K-1} \sum_{i:wrong} w_{i}^{t}\\
+            &= \sum_{i=1}^{m} w_{i}^{t} - \frac{K}{K-1} \sum_{i=1}^{m} \mathbb{I} (f_{t}(x_i)\neq \hat{y}_{i})w_{i}^{t}
+    \end{split}
+\end{equation*} 
+If we want to maximize $\sum_{i=1}^{m}\sum_{k=1}^{K}r_{i,k}f_{t}^{k}(x_i)$, it is equal to minimize $\sum_{i=1}^{m} \mathbb{I} (f_{t}(x_i)\neq \hat{y}_{i})w_{i}^{t}$. 
+Hence, we need to find $f_{t}$ by minimizing the error rate.\\
+Once we find $\mathbf{f}_{t}$ (the one-hot representation of $f_{t}$), we can compute $\alpha_{t}$
+\begin{equation*}
+    \begin{split}
+        \alpha_{t} 
+            &= \arg\min_{\alpha} L(\mathbf{g}_{t}+\alpha\mathbf{f}_{t})\\
+            &= \arg\min_{\alpha} \sum_{i=1}^{m} \exp\left(h_{i,t} + \alpha\left(\frac{1}{K-1}\sum_{k\neq \hat{y}_i}f_{t}^{k}(x_{i})-f_{t}^{\hat{y}_{i}}(x_{i})\right)\right)\\
+            &= \arg\min_{\alpha} \sum_{i=1}^{m} (\mathbb{I} (f_{t}(x_{i}) = \hat{y}_{i})w_{i}^{t}e^{-\alpha} + \mathbb{I} (f_{t}(x_{i}) \neq \hat{y}_{i})w_{i}^{t}e^{\frac{\alpha}{K-1}})
+    \end{split}
+\end{equation*}
+\begin{equation*}
+    \begin{split}
+        \text{gradient} 
+            &= \frac{\partial}{\partial \alpha}\sum_{i=1}^{m} (\mathbb{I} (f_{t}(x_{i}) = \hat{y}_{i})w_{i}^{t}e^{-\alpha} + \mathbb{I} (f_{t}(x_{i}) \neq \hat{y}_{i})w_{i}^{t}e^{\frac{\alpha}{K-1}})\\
+            &= \sum_{i=1}^{m} (-\mathbb{I} (f_{t}(x_{i}) = \hat{y}_{i})w_{i}^{t}e^{-\alpha} + \frac{1}{K-1}\mathbb{I} (f_{t}(x_{i}) \neq \hat{y}_{i})w_{i}^{t}e^{\frac{\alpha}{K-1}}) = 0
+    \end{split}
+\end{equation*}
+\begin{equation*}
+   - e^{-\alpha} \sum_{i \in I_{\text{correct}}} w_i^t + \frac{1}{K-1} e^{\alpha/(K-1)} \sum_{i \in I_{\text{wrong}}} w_i^t = 0 
+\end{equation*}
+$$e^{-\alpha} \sum_{i \in I_{\text{correct}}} w_i^t = \frac{1}{K-1} e^{\alpha/(K-1)} \sum_{i \in I_{\text{wrong}}} w_i^t $$
+$$\frac{e^{-\alpha}}{e^{\alpha/(K-1)}} = \frac{1}{K-1} \frac{\sum_{i \in I_{\text{wrong}}} w_i^t}{\sum_{i \in I_{\text{correct}}} w_i^t} $$
+$$\frac{e^{-\alpha}}{e^{\alpha/(K-1)}} = e^{-\alpha - \frac{\alpha}{K-1}} = e^{-\alpha \left( 1 + \frac{1}{K-1} \right)} = e^{-\alpha \frac{K}{K-1}} $$
+\begin{equation*}
+    \begin{split}
+        e^{-\alpha \frac{K}{K-1}} 
+            &= \frac{1}{K-1} \frac{\sum_{i \in I_{\text{wrong}}} w_i^t}{\sum_{i \in I_{\text{correct}}} w_i^t}\\
+            &= \frac{1}{K-1} \frac{\text{err}_t}{1 - \text{err}_t}
+    \end{split}
+\end{equation*}
+$$- \alpha \frac{K}{K-1} = \log \left( \frac{\text{err}_t}{1 - \text{err}_t} \right) - \log (K-1) $$
+$$\alpha_t = \frac{K-1}{K} \left[ \log \left( \frac{1 - \text{err}_t}{\text{err}_t} \right) + \log (K-1) \right] $$
+
+\section{Bias–Variance Decomposition for Bregman Divergences}
+
+\begin{enumerate}
+    \item[(a)] 
+        By strictly convexity, we have $\phi(p) > \phi(q) + \left\langle \nabla\phi(q), p-q\right\rangle  $ for all $p\neq q$. Hence, suppose there exist $p\neq q$ such that $D_{\phi}(p||q) = 0$.
+        From the strictly convexity, we have $D_{\phi}(p||q) = \phi(p) - \phi(q) - \left\langle \nabla\phi(q), p-q\right\rangle > 0$ is a contradiction. That is $D_{\phi}(p||q) = 0 \Rightarrow p = q$
+
+        Now suppose $p=q$, we have $$D_{\phi}(p||q) = \phi(p) - \phi(q) - \left\langle \nabla\phi(q), p-q\right\rangle = \phi(q) - \phi(q) - \left\langle \nabla\phi(q), q-q\right\rangle=0$$
+        Then $D_{\phi}(p||q) = 0 \Leftrightarrow p = q$
+    \item[(b)]
+        \begin{equation*}
+            \begin{split}
+                \text{LHS} 
+                    &= \mathbb{E} [\phi(y) - \phi(\hat{Y}) - \nabla\phi(\hat{Y})(y-\hat{Y})] \\
+                    &= \phi(y) - \mathbb{E} (\phi(\hat{Y})) - \mathbb{E} (\nabla\phi(\hat{Y})(y-\hat{Y}))
+            \end{split}
+        \end{equation*}    
+        Consider the part of RHS
+        \begin{equation*}
+            D_{\phi}(y||\bar{Y}) = \phi(y) - \phi(\bar{Y}) - \nabla\phi(\bar{Y})(y-\bar{Y})
+        \end{equation*}
+        \begin{equation*}
+            \begin{split}
+                \mathbb{E}[D_{\phi}(\bar{Y}||\hat{Y})] 
+                    &= \mathbb{E}[\phi(\bar{Y})-\phi(\hat{Y})-\nabla\phi(\hat{Y})(\bar{Y}-\hat{Y})]\\
+                    &= \phi(\bar{Y}) - \mathbb{E}[\phi(\hat{Y})] - \mathbb{E}[\nabla\phi(\hat{Y})(\bar{Y}-\hat{Y})]
+            \end{split}
+        \end{equation*}
+        \begin{equation*}
+            \text{RHS} = \phi(y) - \nabla\phi(\bar{Y})(y-\bar{Y}) - \mathbb{E}[\phi(\hat{Y})] - \mathbb{E}[\nabla\phi(\hat{Y})(\bar{Y}-\hat{Y})]
+        \end{equation*}
+        Then compute the equation LHS=RHS
+        \begin{equation*}
+            \phi(y) - \mathbb{E} (\phi(\hat{Y})) - \mathbb{E} (\nabla\phi(\hat{Y})(y-\hat{Y})) = \phi(y) - \nabla\phi(\bar{Y})(y-\bar{Y}) - \mathbb{E}[\phi(\hat{Y})] - \mathbb{E}[\nabla\phi(\hat{Y})(\bar{Y}-\hat{Y})]
+        \end{equation*}
+        \begin{equation*}
+            \mathbb{E} (\nabla\phi(\hat{Y})(y-\hat{Y})) = \nabla\phi(\bar{Y})(y-\bar{Y}) + \mathbb{E}[\nabla\phi(\hat{Y})(\bar{Y}-\hat{Y})]
+        \end{equation*}
+        \begin{equation*}
+            \nabla\phi(\bar{Y})(y-\bar{Y}) + \mathbb{E}[\nabla\phi(\hat{Y})(\bar{Y}-\hat{Y})] - \mathbb{E} (\nabla\phi(\hat{Y})(y-\hat{Y})) = 0
+        \end{equation*}
+        \begin{equation*}
+            \nabla\phi(\bar{Y})(y-\bar{Y}) + \mathbb{E}[\nabla\phi(\hat{Y})((\bar{Y}-y))] = 0
+        \end{equation*}
+        \begin{equation*}
+            (\nabla\phi(\bar{Y}) - \mathbb{E}[\nabla\phi(\hat{Y})])(y-\bar{Y}) = 0
+        \end{equation*}
+        Hence, we have
+        \begin{equation*}
+            \left\langle \nabla\phi(\bar{Y}) - \mathbb{E}[\nabla\phi(\hat{Y})], y-\bar{Y} \right\rangle = 0
+        \end{equation*}
+        Since all of the above steps are equivalent, we can say that
+        \begin{equation*}
+            \mathbb{E}[D_{\phi}(y||\hat{Y})] = D_{\phi}(y||\bar{Y}) + \mathbb{E}[D_{\phi}(\bar{Y}||\hat{Y})]\Leftrightarrow \left\langle \nabla\phi(\bar{Y}) - \mathbb{E}[\nabla\phi(\hat{Y})], y-\bar{Y} \right\rangle = 0
+        \end{equation*}
+    \item[(c)]
+        We want find $\phi=f_{1}(t)$ such that $D_{\phi}(y||\hat{Y}) = \text{MSE}(\hat{Y}, y) = (\hat{Y}-y)^{2}$
+        Let $\phi = ct^2+bt+a$ with $c>0$ to ensure its strictly convexity, we have
+        \begin{equation*}
+            \begin{split}
+                D_{\phi}(y||\hat{Y}) 
+                    &= (cy^2 + by + a) - (c\hat{Y}^2+b\hat{Y}+a) - (2c\hat{Y}+b)(y-\hat{Y}) \\
+                    &= c(y^2-\hat{Y}^{2}) - 2cy\hat{Y} + 2c\hat{Y}^2\\
+                    &= c(y-\hat{Y})^{2}
+            \end{split}
+        \end{equation*}
+        So we can find that when $c = 1$, $D_{\phi}(y||\hat{Y}) = (\hat{Y}-y)^{2}$, here we choose $\phi(t) = f_{1}(t) = t^{2}$.
+
+        Since $D_{\phi}(p||q) = (p-q)^{2}$, we have the classical MSE bias-variance identity can be represented as
+        \begin{equation*}
+            \mathbb{E}[D_{\phi}(y||\hat{Y})] = D_{\phi}(y||\bar{Y}) + \mathbb{E}[D_{\phi}(\bar{Y}||\hat{Y})]
+        \end{equation*}
+        That is, when $\phi(t)=f_{1}(t)$ satisfies $\left\langle \nabla\phi(\bar{Y}) - \mathbb{E}[\nabla\phi(\hat{Y})], y-\bar{Y} \right\rangle = 0$
+        
+        Check if $\phi(t)=f_{1}(t)$ satisfies the condition
+        \begin{equation*}
+            \left\langle \nabla\phi(\bar{Y}) - \mathbb{E}[\nabla\phi(\hat{Y})], y-\bar{Y} \right\rangle = (2\bar{Y}-2\bar{Y})(y-\bar{Y}) = 0
+        \end{equation*}
+    \item[(d)]  
+        Observe that we need $\phi'(t)$ contain $\log t$ so that we can have $\log (\frac{p_{i}}{q_{i}})$. Suppose $\phi(\mathbf{t}) = \mathbf{t}\log \mathbf{t} - \mathbf{t}$
+        \begin{equation*}
+            \begin{split}
+                D_{\phi_{i}}(p_{i}||q_{i}) 
+                    &= p_{i}\log p_{i} - p_{i} - q_{i}\log q_{i} + q_{i} - (\log q_{i})(p_{i}-q_{i})\\
+                    &= p_{i}\log p_{i} - p_{i} + q_{i} - p_{i} \log q_{i} \\
+                    &= p_{i}\log(\frac{p_{i}}{q_{i}}) - p_{i} + q_{i}
+            \end{split}
+        \end{equation*}
+        Choose $f_{2}(\mathbf{t})= \sum_{i=1}^{d}(t_{i}\log t_{i} - t_{i})$ then we have $D_{\phi}(p||q) = \sum_{i=1}^{d}(p_{i}\log(\frac{p_{i}}{q_{i}}) - p_{i} + q_{i})$
+        If $\sum_{i=1}^{d}p_{i} = \sum_{i=1}^{d} q_{i} = 1$, the equation will be
+        \begin{equation*}
+            \begin{split}
+                D_{\phi}(p||q) 
+                    &= \sum_{i=1}^{d}(p_{i}\log(\frac{p_{i}}{q_{i}}) - p_{i} + q_{i})\\
+                    &= \sum_{i=1}^{d}(p_{i}\log(\frac{p_{i}}{q_{i}})) - \sum_{i=1}^{d}p_{i} + \sum_{i=1}^{d}q_{i}\\
+                    &= \sum_{i=1}^{d}(p_{i}\log(\frac{p_{i}}{q_{i}}))
+            \end{split}
+        \end{equation*}
+\end{enumerate}
+
+\section{Gradient Descent Convergence}
+
+\begin{enumerate}
+    \item[(a)]
+        $g(1) = f(\mathbf{y}), g(0) = f(\mathbf{x})$, from FToC we have 
+        \begin{equation}
+            f(\mathbf{y}) - f(\mathbf{x}) = g(1) - g(0) = \int_{0}^{1} g'(t) \,dt 
+        \end{equation}
+        From chain rule, $g'(t)$ can be computed by
+        \begin{equation}
+            \begin{split}
+                g'(t) 
+                    &= \frac{d}{d\mathbf{z}(t)}g(\mathbf{z}(t)) \frac{d \mathbf{z}(t)}{dt}\\
+                    &= \nabla f(\mathbf{x} + t(\mathbf{y}-\mathbf{x}))^T(\mathbf{y}-\mathbf{x})
+            \end{split}
+        \end{equation}
+        From (1) and (2) we have
+        \begin{equation*}
+            f(\mathbf{y}) - f(\mathbf{x}) = \int_{0}^{1} \nabla f(\mathbf{x} + t(\mathbf{y}-\mathbf{x}))^T(\mathbf{y}-\mathbf{x}) \,dt
+        \end{equation*}
+        Since $\nabla f(\mathbf{x})(\mathbf{y}-\mathbf{x})$ is independent on $t$, we have
+        \begin{equation*}
+            \nabla f(\mathbf{x})^T(\mathbf{y}-\mathbf{x}) =\int_{0}^{1} \nabla f(\mathbf{x})^T(\mathbf{y}-\mathbf{x}) \,dt 
+        \end{equation*}
+        Then
+        \begin{equation*}
+            \begin{split}
+                |f(\mathbf{y}) - f(\mathbf{x}) - \nabla f(\mathbf{x})^T(\mathbf{y}-\mathbf{x})| 
+                    &= |\int_{0}^{1} \nabla f(\mathbf{x} + t(\mathbf{y}-\mathbf{x}))^T(\mathbf{y}-\mathbf{x}) - \nabla f(\mathbf{x})^T(\mathbf{y}-\mathbf{x})\,dt|\\
+                    &\leq \int_{0}^{1} \left\lvert (\nabla f(\mathbf{x} + t(\mathbf{y}-\mathbf{x})) - \nabla f(\mathbf{x}))^T(\mathbf{y}-\mathbf{x})\right\rvert \,dt
+            \end{split}
+        \end{equation*}
+        By Cauchy-Schwarz inequality, 
+        \begin{equation*}
+            \left\lvert (\nabla f(\mathbf{x} + t(\mathbf{y}-\mathbf{x})) - \nabla f(\mathbf{x}))^T(\mathbf{y}-\mathbf{x})\right\rvert \leq |\nabla f(\mathbf{x} + t(\mathbf{y} - \mathbf{x})) - \nabla f(\mathbf{x})|_2 \cdot |\mathbf{y} - \mathbf{x}|_2
+        \end{equation*}
+        Let $\mathbf{v} = \mathbf{x} + t(\mathbf{y}-\mathbf{x}), \mathbf{u}=\mathbf{x}$, by $\beta$-smoothness definition
+        \begin{equation*}
+            |\nabla f(\mathbf{v}) - \nabla f(\mathbf{u})|_2 \cdot |\mathbf{y} - \mathbf{x}|_2 \leq \beta t \left\lVert \mathbf{y} - \mathbf{x}\right\rVert _{2}
+        \end{equation*}
+        \begin{equation*}
+            \begin{split}
+                |f(\mathbf{y}) - f(\mathbf{x}) - \nabla f(\mathbf{x})^T(\mathbf{y}-\mathbf{x})| 
+                    &\leq \int_{0}^{1} \beta t \left\lVert \mathbf{y} - \mathbf{x}\right\rVert _{2} \,dt \\
+                    &= \frac{\beta}{2} \left\lVert \mathbf{y} - \mathbf{x}\right\rVert _{2}^{2}
+            \end{split}
+        \end{equation*}
+        Hence we get
+        \begin{equation*}
+            f(\mathbf{y}) - f(\mathbf{x}) - \nabla f(\mathbf{x})^T(\mathbf{y}-\mathbf{x}) \leq \frac{\beta}{2} \left\lVert \mathbf{y} - \mathbf{x}\right\rVert _{2}^{2}
+        \end{equation*}
+    \item[(b)]
+        Let $\mathbf{y} = \mathbf{x} - \frac{1}{\beta} \nabla f(\mathbf{x})$, the (a) inequality will be
+        \begin{equation*}
+            f(\mathbf{y}) - f(\mathbf{x}) - \nabla f(\mathbf{x})^T \left( - \frac{1}{\beta} \nabla f(\mathbf{x}) \right) \le \frac{\beta}{2} \left( \frac{1}{\beta^2} \left\lVert \nabla f(\mathbf{x})\right\rVert _2^2 \right)
+        \end{equation*}
+        \begin{equation*}
+            \nabla f(\mathbf{x})^T \left( - \frac{1}{\beta} \nabla f(\mathbf{x}) \right) = -\frac{1}{\beta}\left\lVert \nabla f(\mathbf{x})\right\rVert _{2}^{2}
+        \end{equation*}
+        \begin{equation*}
+            f(\mathbf{y}) - f(\mathbf{x}) + \frac{1}{\beta}\left\lVert \nabla f(\mathbf{x})\right\rVert _{2}^{2} \le  \left( \frac{1}{2\beta} \left\lVert \nabla f(\mathbf{x})\right\rVert _2^2 \right)
+        \end{equation*}
+        \begin{equation*}
+            f(\mathbf{x} - \frac{1}{\beta} \nabla f(\mathbf{x})) - f(\mathbf{x})  \le   -\frac{1}{2\beta} \left\lVert \nabla f(\mathbf{x})\right\rVert _2^2 
+        \end{equation*}
+        Since $\mathbf{x}^{*} = \arg\min_{\mathbf{x}}f(\mathbf{x})$, we have $f(\mathbf{x}^{*}) - f(\mathbf{x}) \leq f(\mathbf{y}) - f(\mathbf{x})$. Hence,
+        \begin{equation*}
+            f(\mathbf{x}^{*}) - f(\mathbf{x}) \leq -\frac{1}{2\beta} \left\lVert \nabla f(\mathbf{x})\right\rVert _2^2 
+        \end{equation*}
+    \item[(c)]
+        Prove the equality:
+        \begin{equation*}
+            \begin{split}
+                \left\lVert \theta_{n+1} - \theta^*\right\rVert _2^2 
+                    &= \left\lVert (\theta_n - \eta \nabla f(\theta_n)) - \theta^*\right\rVert _2^2\\
+                    &= \left\lVert \theta_n - \theta^*\right\rVert _{2}^{2} + \left\lVert \eta \nabla f(\theta_n)\right\rVert _{2}^{2} - 2  (\theta_n - \theta^*)^T\eta \nabla f(\theta_n)\\
+                    &= \left\lVert \theta_n - \theta^*\right\rVert _{2}^{2} + \eta^{2}\left\lVert \nabla f(\theta_n)\right\rVert _{2}^{2} - 2\eta(\nabla f(\theta_n))^T(\theta_n - \theta^*)
+            \end{split}
+        \end{equation*}
+    \item[(d)]
+        Now prove the inequality, first by $\alpha$ strongly convexity,
+        \begin{equation*}
+            \frac{1}{2\beta} \left\lVert \nabla f(\theta_{n})\right\rVert  _2^2 \leq f(\theta_{n}) - f(\theta^{*}) \leq \nabla f(\theta_{n})^T(\theta_{n} - \theta^{*}) - \frac{\alpha}{2}\left\lVert \theta^{*} - \theta_{n}\right\rVert _{2}^{2}
+        \end{equation*}
+        \begin{equation*}
+            \frac{1}{2\beta} \left\lVert \nabla f(\theta_{n})\right\rVert  _2^2 + \frac{\alpha}{2}\left\lVert \theta^{*} - \theta_{n}\right\rVert _{2}^{2} \leq \nabla f(\theta_{n})^T(\theta_{n} - \theta^{*})
+        \end{equation*}
+        \begin{equation*}
+            -((\frac{1}{\beta})^{2} \left\lVert \nabla f(\theta_{n})\right\rVert  _2^2 + \frac{\alpha}{\beta}\left\lVert \theta^{*} - \theta_{n}\right\rVert _{2}^{2}) \geq -\frac{2}{\beta}\nabla f(\theta_{n})^T(\theta_{n} - \theta^{*})
+        \end{equation*}
+        \begin{equation*}
+            \begin{split}
+                \left\lVert \theta_{n+1} - \theta^*\right\rVert _2^2 
+                    &= \left\lVert \theta_n - \theta^*\right\rVert _{2}^{2} + (\frac{1}{\beta})^{2}\left\lVert \nabla f(\theta_n)\right\rVert _{2}^{2} - 2(\frac{1}{\beta})(\nabla f(\theta_n))^T(\theta_n - \theta^*)\\
+                    &\leq \left\lVert \theta_n - \theta^*\right\rVert _{2}^{2} + (\frac{1}{\beta})^{2}\left\lVert \nabla f(\theta_n)\right\rVert _{2}^{2} -((\frac{1}{\beta})^{2} \left\lVert \nabla f(\theta_{n})\right\rVert  _2^2 + \frac{\alpha}{\beta}\left\lVert \theta^{*} - \theta_{n}\right\rVert _{2}^{2})\\
+                    &= \left\lVert \theta_n - \theta^*\right\rVert _{2}^{2} - \frac{\alpha}{\beta}\left\lVert \theta^{*} - \theta_{n}\right\rVert _{2}^{2}
+            \end{split}
+        \end{equation*}
+        Hence, we have
+        \begin{equation*}
+            \left\lVert \theta_{n+1} - \theta^*\right\rVert _2^2 \leq (1 - \frac{\alpha}{\beta})\left\lVert \theta_{n} - \theta^{*} \right\rVert _{2}^{2}
+        \end{equation*}
+    \item[(e)]
+        We have $\left\lVert \theta_{n+1} - \theta^*\right\rVert _2^2 \geq 0$ and the inequality of (d) gives us $\left\lVert \theta_{n} - \theta^*\right\rVert _2^2$ is strictly decreasing.
+        By the Monotone convergence theorem
+        \begin{equation*}
+            \lim_{n\to \infty} \left\lVert \theta_{n} - \theta^*\right\rVert _2^2 = 0
+        \end{equation*}
+        Hence, $\theta_{n}$ will converge to $\theta^{*}$.
+\end{enumerate}
+
+\end{document}
