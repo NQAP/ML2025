@@ -9,10 +9,9 @@
 *.txt
 __pycache__
 b10201054
-L*
-Trees*
-linux_golden
-windows_golden
 data
+dataset
+model*
+*.pth
 image
 *.ckpt
