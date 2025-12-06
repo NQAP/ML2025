@@ -33,6 +33,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from gensim.models import Word2Vec
 from gensim.models.phrases import Phrases, Phraser
+from gensim.models import FastText  # 引入 FastText
 from sklearn.model_selection import train_test_split
 
 """## Set the Configurations"""
@@ -45,9 +46,9 @@ DEVICE_NUM = 2
 BATCH_SIZE = 64
 EPOCH_NUM = 50
 MAX_POSITIONS_LEN = 500
-SEED = 0
+SEED = 2025
 MODEL_DIR = 'model.pth'
-lr = 0.001
+lr = 0.002
 
 # Set Seed
 torch.backends.cudnn.deterministic = True
@@ -61,7 +62,7 @@ np.random.seed(SEED)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # RNN Config
-w2v_config = {'path': 'model_5', 'dim': 256}
+w2v_config = {'path': 'model_emoji_not_URL_repeat_quote_4', 'dim': 256}
 
 lstm_config = {
     'hidden_dim': 128,
@@ -71,7 +72,7 @@ lstm_config = {
 }
 
 header_config = {
-    'dropout': 0.2,         # 因為解凍了 Embedding，Dropout 可以高一點防止過擬合
+    'dropout': 0.25,         # 因為解凍了 Embedding，Dropout 可以高一點防止過擬合
     'hidden_dim': 256       # 256 * 2
 }
 
@@ -93,6 +94,17 @@ def parsing_text(text):
         return ""
     
     text = str(text).lower() 
+
+    # --- [新增] 先保護表情符號 ---
+    # 定義字典映射
+    emojis = {
+        ':)': ' _smile_ ', ':-)': ' _smile_ ', ';)': ' _wink_ ', 
+        ':(': ' _sad_ ',   ':-(': ' _sad_ ',  ':/': ' _worry_ ',
+        '<3': ' _love_ '
+    }
+    for emo, token in emojis.items():
+        text = text.replace(emo, token)
+    # # ---------------------------
     
     # 1. 移除網址與 User ID (這些對情緒沒幫助)
     text = REGEX_URL.sub('', text)
@@ -179,14 +191,23 @@ class Preprocessor:
 
     def build_word2vec(self, x, path, dim):
         if os.path.isfile(path):
-            print("loading word2vec model ...")
-            w2v_model = Word2Vec.load(path)
+            print("loading FastText model ...")
+            # 注意這裡載入方式也不同
+            w2v_model = FastText.load(path)
         else:
-            print("training word2vec model ...")
-            w2v_model = Word2Vec(x, vector_size=dim, window=5, min_count=3, workers=12, epochs=15, sg=1)
-            print("saving word2vec model ...")
+            print("training FastText model ...")
+            # min_n, max_n 是字根長度範圍，Twitter 短字多，3-6 是好選擇
+            w2v_model = FastText(vector_size=dim, window=5, min_count=3, 
+                                workers=12, epochs=10, seed=SEED,
+                                min_n=3, max_n=6) 
+            w2v_model.build_vocab(x)
+            w2v_model.train(x, total_examples=w2v_model.corpus_count, epochs=w2v_model.epochs)
+            
+            print("saving FastText model ...")
             w2v_model.save(path)
 
+        # 後面邏輯一樣，FastText 兼容 Word2Vec 的 wv 介面
+        self.embedding_dim = w2v_model.vector_size
         self.embedding_dim = w2v_model.vector_size
         for i, word in enumerate(w2v_model.wv.key_to_index):
             #e.g. self.word2index['he'] = 1
@@ -253,7 +274,7 @@ class TwitterDataset(torch.utils.data.Dataset):
         self.id_list = id_list
         self.preprocessor = preprocessor
         # 設定最小長度門檻
-        MIN_LENGTH = 3 
+        MIN_LENGTH = 4
         
         for i in range(len(sentences)):
             input_ids = preprocessor.sentence2idx(sentences[i])
@@ -416,6 +437,41 @@ def compute_kl_loss(p, q, pad_mask=None):
     loss = (p_loss + q_loss) / 2
     return loss
 
+class BinaryFocalLoss(torch.nn.Module):
+    """
+    Focal Loss for Binary Classification
+    Formula: Loss = - alpha * (1 - p_t)^gamma * log(p_t)
+    """
+    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+        super(BinaryFocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, logits, targets):
+        # logits: (Batch_Size, ), 未經過 Sigmoid
+        # targets: (Batch_Size, ), 0 或 1
+        
+        # 1. 計算原本的 Binary Cross Entropy
+        bce_loss = F.binary_cross_entropy_with_logits(logits, targets, reduction='none')
+        
+        # 2. 取得預測機率 p_t
+        # 如果 target=1, p_t = p; 如果 target=0, p_t = 1-p
+        p = torch.sigmoid(logits)
+        p_t = p * targets + (1 - p) * (1 - targets)
+        
+        # 3. 計算調節因子 (Modulating Factor): (1 - p_t)^gamma
+        # 當 p_t 接近 1 (預測準確)，這個因子會趨近 0 -> 降低權重
+        # 當 p_t 接近 0 (預測錯誤/難樣本)，這個因子會很大 -> 保持權重
+        loss = self.alpha * (1 - p_t)**self.gamma * bce_loss
+        
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        else:
+            return loss
+        
 # 修改 train 函數
 def train(train_loader, backbone, header, optimizer, criterion, device, epoch):
     alpha = 2 # R-Drop 的權重 (通常設 1~5)
@@ -544,7 +600,7 @@ def run_training(train_loader, valid_loader, backbone, header, epoch_num, lr, de
     header.train()
     backbone = backbone.to(device)
     header = header.to(device)
-    criterion = torch.nn.BCEWithLogitsLoss()
+    criterion = BinaryFocalLoss(alpha=0.5, gamma=2.0)
     
     for epoch in range(epoch_num):
         train(train_loader, backbone, header, optimizer, criterion, device, epoch)
