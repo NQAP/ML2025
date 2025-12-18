@@ -20,11 +20,12 @@ PAWN_MOVE_PROB = 0.2
 # 修改 2: 提高捕捉獎勵 (REWARD_CATCH = 5.0)，增大目標與過程的 Value 差異 (Gradient)。
 # 修改 3: 稍微降低 Gamma (0.95)，讓 Agent 更看重近期的獎勵 (雖非必要，但有助於收斂速度)。
 
-REWARD_CATCH = 5.0      # Increased reward
-REWARD_STEP = -0.1      # Time penalty
-GAMMA = 0.95            # Discount factor
-TAU = 0.1               # Learning rate
+REWARD_CATCH = 10.0      # Increased reward
+REWARD_STEP = -1.7    # Time penalty
+GAMMA = 0.99            # Discount factor
+TAU = 0.05               # Learning rate
 num_episodes = 100000
+TRAIN_SEED = 42         # 固定訓練種子
 
 class ChessEnvironment:
     def __init__(self):
@@ -76,24 +77,30 @@ class ChessEnvironment:
 
 # TODO : Action selection strategies
 def greedy_action_selection(env, state, value_table):
-    # Find the action with the highest value
     kx, ky, px, py = state
-    actions = env._knight_moves((kx, ky)) # -> List[(knight_x, knight_y)]
-    
-    if not actions:
-        return (kx, ky) # Stay if no moves (should not happen in valid grid)
+    actions = env._knight_moves((kx, ky))
+    if not actions: return (kx, ky)
 
     best_action = None
-    max_val = -float('inf')
+    max_expected_val = -float('inf')
 
-    # Look ahead to see which neighbor has the highest Value
-    # Note: We assume Pawn stays still for the purpose of selection (Greedy wrt current state)
-    for action in actions:
-        # action is the next (kx, ky)
-        val = value_table[action[0], action[1], px, py]
-        if val > max_val:
-            max_val = val
-            best_action = action
+    for (nx, ny) in actions:
+        # 情況 1: Pawn 沒動 (80%)
+        v_stay = value_table[nx, ny, px, py]
+        
+        # 情況 2: Pawn 動了 (20%)
+        # 判斷 Pawn 移動後的新位置
+        npx, npy = px, py
+        if px < BOARD_SIZE - 1 and (px + 1, py) not in OBSTACLES:
+            npx = px + 1
+        v_move = value_table[nx, ny, npx, npy]
+        
+        # 計算期望值
+        expected_val = (1 - PAWN_MOVE_PROB) * v_stay + PAWN_MOVE_PROB * v_move
+        
+        if expected_val > max_expected_val:
+            max_expected_val = expected_val
+            best_action = (nx, ny)
             
     return best_action
 
@@ -114,9 +121,32 @@ def ucb_action_selection(env, state, value_table, count_table, c=2):
 
 # Tabular RL
 def train_agent():
+    random.seed(TRAIN_SEED)
+    np.random.seed(TRAIN_SEED)
     env = ChessEnvironment()
     # state = (knight_x, knight_y, pawn_x, pawn_y)
     value_table = np.zeros((BOARD_SIZE, BOARD_SIZE, BOARD_SIZE, BOARD_SIZE)) 
+
+    def get_bfs_dist(start_k, start_p):
+        # 簡單的 BFS 算出騎士抓到兵的最短步數 (假設兵不動)
+        queue = [(start_k, 0)]
+        visited = {start_k}
+        while queue:
+            (curr_k, dist), *queue = queue
+            if curr_k == start_p: return dist
+            for move in env._knight_moves(curr_k):
+                if move not in visited:
+                    visited.add(move)
+                    queue.append((move, dist + 1))
+        return MAX_ROUNDS
+    
+    for kx in range(8):
+        for ky in range(8):
+            for px in range(8):
+                for py in range(8):
+                    # 初始價值 = 捕捉獎勵 - 預估步數
+                    d = get_bfs_dist((kx, ky), (px, py))
+                    value_table[kx, ky, px, py] = REWARD_CATCH - d
 
     # Epsilon decay strategy
     epsilon = 0.9
@@ -156,6 +186,8 @@ def train_agent():
                     max_next_value = max([value_table[nx, ny, npx, npy] for nx, ny in next_actions])
                 else:
                     max_next_value = value_table[nkx, nky, npx, npy] # Fallback
+
+                    
                 
                 target = reward + GAMMA * max_next_value
 
